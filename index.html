@@ -6,9 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta
     name="description"
-    content="Xence Swap is a cinematic one-page experience for AXM, the routing & utility token on Solana. Scroll through the story, swap via Jupiter, and explore tokenomics, roadmap and links."
+    content="Xence Swap is a one-page experience for AXM, the routing & utility token on Solana. Scroll through the story, swap via Jupiter, and explore tokenomics, roadmap and links."
   />
-  <link rel="icon" type="image/png" href="axm-logo.png" />
   <style>
     :root {
       --bg: #050718;
@@ -25,7 +24,7 @@
       --radius-xl: 26px;
       --radius-lg: 20px;
       --radius-md: 14px;
-      --shadow-soft: 0 28px 88px rgba(0, 0, 0, 0.82);
+      --shadow-soft: 0 24px 70px rgba(0, 0, 0, 0.86);
     }
 
     * {
@@ -51,19 +50,19 @@
     .page {
       max-width: 1180px;
       margin: 0 auto;
-      padding: 18px 18px 52px;
+      padding: 16px 16px 40px;
     }
 
     /* NAVBAR */
 
     .nav {
       position: sticky;
-      top: 14px;
+      top: 12px;
       z-index: 30;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 18px;
+      padding: 9px 16px;
       border-radius: 999px;
       background: linear-gradient(
           135deg,
@@ -72,7 +71,7 @@
         ),
         rgba(5, 8, 26, 0.96);
       border: 1px solid rgba(122, 143, 220, 0.45);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.88);
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.88);
       backdrop-filter: blur(22px);
       gap: 14px;
     }
@@ -84,22 +83,28 @@
     }
 
     .logo-wrap {
-      width: 50px;
-      height: 50px;
+      width: 52px;
+      height: 52px;
       border-radius: 999px;
-      background: radial-gradient(circle at 30% 0, #ffffff, #4fc3ff 40%, #050718);
+      background:
+        radial-gradient(circle at 30% 0, #ffffff, #4fc3ff 40%, #050718 80%);
+      box-shadow:
+        0 0 24px rgba(79, 195, 255, 0.8),
+        0 0 40px rgba(192, 103, 255, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 26px rgba(79, 195, 255, 0.6);
-      overflow: hidden;
+      border: 1px solid rgba(180, 210, 255, 0.4);
     }
 
-    .logo-wrap img {
-      width: 88%;
-      height: 88%;
-      object-fit: contain;
-      filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.9));
+    .logo-text {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: #ffffff;
+      text-shadow:
+        0 0 10px rgba(255, 255, 255, 0.9),
+        0 0 24px rgba(79, 195, 255, 0.9);
     }
 
     .brand-block {
@@ -127,7 +132,7 @@
 
     .nav-center {
       display: flex;
-      gap: 18px;
+      gap: 16px;
       font-size: 13px;
       color: var(--muted);
     }
@@ -143,7 +148,7 @@
       position: absolute;
       left: 0;
       right: 0;
-      bottom: -6px;
+      bottom: -5px;
       height: 2px;
       border-radius: 99px;
       background: linear-gradient(90deg, var(--accent), var(--accent-2));
@@ -165,7 +170,7 @@
     }
 
     .pill {
-      padding: 8px 12px;
+      padding: 7px 11px;
       border-radius: 999px;
       font-size: 10px;
       letter-spacing: 0.16em;
@@ -189,7 +194,7 @@
     .btn {
       border-radius: 999px;
       font-size: 12px;
-      padding: 8px 16px;
+      padding: 7px 15px;
       border: 1px solid transparent;
       cursor: pointer;
       display: inline-flex;
@@ -203,7 +208,7 @@
 
     .btn-primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.86);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.88);
     }
 
     .btn-ghost {
@@ -218,22 +223,22 @@
       filter: brightness(1.06);
     }
 
-    /* SLIDE SECTIONS */
+    /* SLIDES */
 
     main {
-      margin-top: 26px;
+      margin-top: 22px;
     }
 
     .slide {
-      min-height: 100vh;
+      min-height: 78vh;
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
-      gap: 26px;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.05fr);
+      gap: 24px;
       align-items: center;
-      padding: 70px 4px 80px;
+      padding: 58px 4px 60px;
       opacity: 0;
-      transform: translateY(40px);
-      transition: opacity 0.75s ease, transform 0.75s ease;
+      transform: translateY(34px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
     }
 
     .slide.visible {
@@ -242,23 +247,23 @@
     }
 
     .slide-alt {
-      grid-template-columns: minmax(0, 1.2fr);
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .slide:nth-child(odd) {
       background: radial-gradient(circle at top, #111939, #050718 55%);
-      border-radius: 32px;
+      border-radius: 28px;
       border: 1px solid rgba(122, 143, 220, 0.28);
       box-shadow: var(--shadow-soft);
-      padding-inline: 26px;
+      padding-inline: 22px;
     }
 
     .slide:nth-child(even) {
       background: radial-gradient(circle at bottom, #141c3b, #050718 60%);
-      border-radius: 32px;
+      border-radius: 28px;
       border: 1px solid rgba(122, 143, 220, 0.26);
       box-shadow: var(--shadow-soft);
-      padding-inline: 26px;
+      padding-inline: 22px;
     }
 
     .slide-header {
@@ -266,22 +271,22 @@
       font-size: 11px;
       text-transform: uppercase;
       color: #7e89c4;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
     }
 
     .slide-header-dot {
-      width: 20px;
+      width: 18px;
       height: 1px;
       border-radius: 999px;
       background: linear-gradient(90deg, var(--accent), transparent);
     }
 
     .slide-title {
-      font-size: 28px;
-      margin-bottom: 10px;
+      font-size: 27px;
+      margin-bottom: 8px;
     }
 
     .slide-title span {
@@ -292,14 +297,14 @@
       font-size: 13px;
       color: var(--muted);
       max-width: 520px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .tag-row {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .tag {
@@ -325,7 +330,7 @@
     }
 
     .scroll-hint {
-      margin-top: 20px;
+      margin-top: 18px;
       font-size: 11px;
       color: var(--muted);
       display: inline-flex;
@@ -366,12 +371,12 @@
       }
     }
 
-    /* CARDS INSIDE SLIDES */
+    /* CARDS */
 
     .card {
       background: radial-gradient(circle at top, #18224b, #050718 70%);
       border-radius: var(--radius-xl);
-      padding: 18px 18px 16px;
+      padding: 16px 16px 14px;
       border: 1px solid rgba(122, 143, 220, 0.5);
       box-shadow: var(--shadow-soft);
       font-size: 13px;
@@ -387,7 +392,7 @@
     .card-grid-2 {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
+      gap: 12px;
     }
 
     .mini-label {
@@ -425,27 +430,27 @@
       color: #2be4a2;
     }
 
-    /* SWAP PANEL */
+    /* “JUPITER KARTI” */
 
-    .swap-panel {
+    .jupiter-card {
       border-radius: var(--radius-lg);
-      overflow: hidden;
+      padding: 18px 18px 16px;
+      background: radial-gradient(circle at top left, #263874, #050718 70%);
       border: 1px solid rgba(122, 143, 220, 0.7);
-      background: #020413;
       box-shadow: var(--shadow-soft);
-    }
-
-    .swap-header {
-      margin-bottom: 8px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
       color: var(--muted);
     }
 
-    .swap-header strong {
-      color: var(--text);
+    .jupiter-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
     }
 
     .chip-live {
@@ -459,19 +464,26 @@
       color: #2be4a2;
     }
 
-    .swap-panel iframe {
-      width: 100%;
-      height: 430px;
-      border: none;
+    .jupiter-main-title {
+      font-size: 15px;
+      color: var(--text);
+      font-weight: 600;
+      margin-bottom: 4px;
     }
 
-    .swap-note {
+    .jupiter-main-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .jupiter-bottom-note {
       font-size: 11px;
       color: var(--muted);
-      margin-top: 8px;
+      margin-top: 4px;
     }
 
-    /* TOKENOMICS TABLES */
+    /* TABLES */
 
     table {
       width: 100%;
@@ -497,11 +509,11 @@
       border-bottom: none;
     }
 
-    /* ROADMAP TIMELINE */
+    /* TIMELINE */
 
     .timeline {
       display: grid;
-      gap: 14px;
+      gap: 12px;
       margin-top: 8px;
       font-size: 13px;
     }
@@ -529,7 +541,7 @@
       left: 7px;
       top: 14px;
       width: 1px;
-      bottom: -12px;
+      bottom: -10px;
       background: rgba(104, 123, 210, 0.6);
     }
 
@@ -546,20 +558,20 @@
     /* FOOTER */
 
     footer {
-      margin-top: 30px;
-      padding-top: 16px;
+      margin-top: 26px;
+      padding-top: 14px;
       border-top: 1px solid rgba(40, 51, 102, 0.9);
       display: flex;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       font-size: 11px;
       color: var(--muted);
     }
 
     .footer-links {
       display: flex;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
     }
 
@@ -567,7 +579,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 0;
+      padding: 3px 0;
     }
 
     .footer-link span {
@@ -580,7 +592,8 @@
     @media (max-width: 980px) {
       .slide {
         grid-template-columns: minmax(0, 1fr);
-        padding-inline: 18px;
+        padding-inline: 16px;
+        min-height: 72vh;
       }
 
       .nav-center {
@@ -595,23 +608,19 @@
 
     @media (max-width: 640px) {
       .page {
-        padding: 14px 10px 40px;
+        padding: 12px 8px 30px;
       }
 
       .slide {
-        padding: 60px 12px 70px;
+        padding: 52px 12px 56px;
       }
 
       .slide-title {
-        font-size: 24px;
+        font-size: 23px;
       }
 
       .card-grid-2 {
         grid-template-columns: minmax(0, 1fr);
-      }
-
-      .swap-panel iframe {
-        height: 380px;
       }
     }
   </style>
@@ -622,11 +631,11 @@
     <header class="nav">
       <div class="nav-left">
         <div class="logo-wrap">
-          <img src="axm-logo.png" alt="AXM logo" />
+          <span class="logo-text">AXM</span>
         </div>
         <div class="brand-block">
           <div class="brand"><span>AXM</span> · Xence Swap</div>
-          <div class="brand-sub">Aggregated liquidity for AXM & Solana</div>
+          <div class="brand-sub">Aggregated liquidity for AXM &amp; Solana</div>
         </div>
       </div>
 
@@ -634,6 +643,7 @@
         <a class="nav-link" href="#slide-hero">Intro</a>
         <a class="nav-link" href="#slide-why">Why AXM</a>
         <a class="nav-link" href="#slide-swap">Swap</a>
+        <a class="nav-link" href="#slide-how">How to get</a>
         <a class="nav-link" href="#slide-tokenomics">Tokenomics</a>
         <a class="nav-link" href="#slide-roadmap">Roadmap</a>
         <a class="nav-link" href="#slide-links">Links</a>
@@ -679,7 +689,7 @@
             <span class="tag">Primary pool · SOL / AXM on Raydium</span>
           </div>
 
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+          <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:2px;">
             <a class="btn btn-primary" href="#slide-swap">Open AXM swap</a>
             <a
               class="btn btn-ghost"
@@ -693,13 +703,13 @@
 
           <div class="scroll-hint">
             <div class="scroll-dot"></div>
-            <span>Scroll to step through the AXM story.</span>
+            <span>Scroll to walk through the AXM story.</span>
           </div>
         </div>
 
         <div class="card">
           <h3>Core token data</h3>
-          <div class="card-grid-2" style="margin-top:8px;">
+          <div class="card-grid-2" style="margin-top:6px;">
             <div>
               <div class="mini-label">AXM mint (mainnet)</div>
               <div class="mono">
@@ -715,7 +725,7 @@
               <div class="badge-soft green">Locked to creator</div>
             </div>
           </div>
-          <div style="margin-top:10px;font-size:12px;">
+          <div style="margin-top:8px;font-size:12px;">
             AXM is deployed as a standard SPL token with mint authority disabled
             and supply distributed across liquidity, treasury, marketing,
             airdrops and team pools.
@@ -734,12 +744,12 @@
             Why build a separate <span>routing &amp; utility</span> token?
           </h2>
           <p class="slide-sub">
-            AXM is not another random meme coin. It is a routing token on top of
+            AXM is not just another meme coin. It is a routing token on top of
             Jupiter that can plug into dashboards, bots and front-ends which
             all share the same liquidity.
           </p>
 
-          <ul style="list-style:none;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:8px;">
+          <ul style="list-style:none;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:7px;">
             <li>
               <strong style="color:var(--text);">Jupiter-powered routing.</strong>
               &nbsp;Orders are routed through Solana’s top DEXs via Jupiter,
@@ -764,7 +774,7 @@
 
         <div class="card">
           <h3>Assistant program · quick highlights</h3>
-          <div class="card-grid-2" style="margin-top:8px;">
+          <div class="card-grid-2" style="margin-top:6px;">
             <div>
               <div class="mini-label">Liquidity-backed price</div>
               Routed liquidity from Solana DEXs ensures AXM trades reference
@@ -783,13 +793,13 @@
             <div>
               <div class="mini-label">Experiment, not empire</div>
               The goal is to prove a clean routing-token design, not to become a
-              mega-protocol that does everything.
+              mega-protocol that tries to do everything.
             </div>
           </div>
         </div>
       </section>
 
-      <!-- SLIDE 3: SWAP PANEL -->
+      <!-- SLIDE 3: SWAP -->
       <section class="slide" id="slide-swap">
         <div>
           <div class="slide-header">
@@ -801,11 +811,11 @@
           </h2>
           <p class="slide-sub">
             Connect your Solana wallet and trade AXM using aggregated liquidity
-            from the Jupiter router. The widget below is the same engine used by
-            many major Solana front-ends.
+            from the Jupiter router. The panel on the right is a lightweight
+            entry to the full Jupiter experience.
           </p>
 
-          <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:8px;">
             <div class="tag-row">
               <span class="tag">Wallets · Phantom, Solflare, Backpack &amp; more</span>
               <span class="tag">Route engine · Jupiter</span>
@@ -819,40 +829,113 @@
             >
               Open full Jupiter page
             </a>
-            <p class="slide-sub" style="margin-top:6px;">
-              If your wallet does not show up inside the embedded panel, you can
-              always open the full Jupiter app with AXM pre-selected using the
-              button above.
+            <p class="slide-sub" style="margin-top:4px;">
+              The button opens Jupiter with <strong>AXM pre-selected</strong>.
+              Choose any input token supported by Jupiter and route into AXM.
             </p>
           </div>
         </div>
 
-        <div>
-          <div class="swap-header">
-            <span><strong>Xence Swap · AXM</strong> · embedded Jupiter terminal</span>
+        <div class="jupiter-card">
+          <div class="jupiter-top-row">
+            <span><strong>Xence Swap · AXM</strong> · Jupiter plugin entry</span>
             <span class="chip-live">Jupiter plugin live</span>
           </div>
-          <div class="swap-panel">
-            <!-- Jupiter panel: token → AXM (SOL as default input) -->
-            <iframe
-              src="https://terminal.jup.ag/mainnet-fast?inputMint=So11111111111111111111111111111111111111112&outputMint=9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi"
-              title="Jupiter AXM swap"
-              allow="clipboard-read; clipboard-write; fullscreen"
-            ></iframe>
+          <div>
+            <div class="jupiter-main-title">Wallet not detected here?</div>
+            <div class="jupiter-main-sub">
+              Some browsers block embedded wallets inside iframes. If Phantom
+              does not appear in the panel above, simply open the full Jupiter
+              app with AXM already selected.
+            </div>
           </div>
-          <p class="swap-note">
+          <div>
+            <a
+              class="btn btn-primary"
+              href="https://jup.ag/swap/SOL-9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open AXM on Jupiter
+            </a>
+          </div>
+          <div class="jupiter-bottom-note">
             Always double-check the AXM mint address before trading:
             <span class="mono">9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi</span>.
-          </p>
+          </div>
         </div>
       </section>
 
-      <!-- SLIDE 4: TOKENOMICS -->
+      <!-- SLIDE 4: HOW TO GET AXM -->
+      <section class="slide" id="slide-how">
+        <div>
+          <div class="slide-header">
+            <span class="slide-header-dot"></span>
+            <span>Slide 04 · How to get AXM</span>
+          </div>
+          <h2 class="slide-title">
+            Three quick steps to <span>join the pool.</span>
+          </h2>
+          <p class="slide-sub">
+            If you are new to Solana or Raydium, this is the short version of
+            how to get started with AXM.
+          </p>
+
+          <ol style="font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:7px;margin-left:16px;">
+            <li>
+              Install a Solana wallet (Phantom recommended) and fund it with a
+              small amount of SOL.
+            </li>
+            <li>
+              Visit the Raydium link below and swap SOL (or another supported
+              asset via Jupiter) into AXM.
+            </li>
+            <li>
+              Optionally, add liquidity to the SOL / AXM pool and earn trading
+              fees on top of price exposure.
+            </li>
+          </ol>
+
+          <div class="pill-inline" style="margin-top:8px;">
+            <span>Always keep enough SOL for network fees.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Raydium & explorer links</h3>
+          <div style="font-size:13px;display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+            <div>
+              <div class="mini-label">Swap via Raydium</div>
+              <a
+                href="https://raydium.io/swap/?inputMint=sol&outputMint=9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mono"
+              >
+                https://raydium.io/swap/?inputMint=SOL&outputMint=AXM
+              </a>
+            </div>
+            <div>
+              <div class="mini-label">View on Solscan</div>
+              <a
+                href="https://solscan.io/token/9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mono"
+              >
+                https://solscan.io/token/9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 5: TOKENOMICS -->
       <section class="slide" id="slide-tokenomics">
         <div>
           <div class="slide-header">
             <span class="slide-header-dot"></span>
-            <span>Slide 04 · Tokenomics</span>
+            <span>Slide 05 · Tokenomics</span>
           </div>
           <h2 class="slide-title">
             Simple, transparent <span>AXM</span> distribution.
@@ -862,7 +945,7 @@
             straightforward so holders can see where the supply lives.
           </p>
 
-          <ul style="list-style:none;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:8px;">
+          <ul style="list-style:none;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:7px;">
             <li>
               <strong style="color:var(--text);">Fixed supply.</strong>
               &nbsp;Mint authority is disabled, freeze authority is off. What’s
@@ -883,7 +966,7 @@
 
         <div class="card">
           <h3>Allocation breakdown</h3>
-          <div class="card-grid-2" style="margin-top:8px;">
+          <div class="card-grid-2" style="margin-top:6px;">
             <div>
               <table>
                 <thead>
@@ -915,7 +998,7 @@
                   </tr>
                 </tbody>
               </table>
-              <div class="badge-soft" style="margin-top:8px;">
+              <div class="badge-soft" style="margin-top:6px;">
                 Total supply · 500,000,000 AXM
               </div>
             </div>
@@ -959,12 +1042,12 @@
         </div>
       </section>
 
-      <!-- SLIDE 5: ROADMAP -->
+      <!-- SLIDE 6: ROADMAP -->
       <section class="slide slide-alt" id="slide-roadmap">
         <div>
           <div class="slide-header">
             <span class="slide-header-dot"></span>
-            <span>Slide 05 · Roadmap</span>
+            <span>Slide 06 · Roadmap</span>
           </div>
           <h2 class="slide-title">
             Light roadmap, <span>heavy execution.</span>
@@ -999,12 +1082,12 @@
         </div>
       </section>
 
-      <!-- SLIDE 6: LINKS / COMMUNITY -->
+      <!-- SLIDE 7: LINKS / COMMUNITY -->
       <section class="slide slide-alt" id="slide-links">
         <div>
           <div class="slide-header">
             <span class="slide-header-dot"></span>
-            <span>Slide 06 · Links &amp; community</span>
+            <span>Slide 07 · Links &amp; community</span>
           </div>
           <h2 class="slide-title">
             Want to <span>dig deeper</span> into AXM?
@@ -1051,7 +1134,7 @@
 
             <div class="card">
               <h3>Social &amp; repo</h3>
-              <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:6px;">
+              <div style="font-size:13px;display:flex;flex-direction:column;gap:9px;margin-top:6px;">
                 <div>
                   <div class="mini-label">GitHub · site &amp; assets</div>
                   <a
@@ -1086,7 +1169,7 @@
       </section>
     </main>
 
-    <!-- FOOTER (no eski uyarı metni) -->
+    <!-- FOOTER (eski uyarı yok) -->
     <footer>
       <div>
         Xence Swap routes through Jupiter. AXM is a routing &amp; utility
@@ -1114,7 +1197,6 @@
   </div>
 
   <script>
-    // scroll reveal for slides
     const slides = document.querySelectorAll(".slide");
     const navLinks = document.querySelectorAll(".nav-link");
 
@@ -1123,8 +1205,6 @@
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("visible");
-
-            // navbar active state
             const id = entry.target.id;
             navLinks.forEach((link) => {
               const href = link.getAttribute("href").replace("#", "");
@@ -1134,13 +1214,11 @@
         });
       },
       {
-        threshold: 0.25,
+        threshold: 0.2,
       }
     );
 
     slides.forEach((slide) => observer.observe(slide));
-
-    // ensure first slide visible on load
     document.getElementById("slide-hero").classList.add("visible");
   </script>
 </body>

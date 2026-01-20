@@ -1,35 +1,30 @@
-
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Xence Swap · AXM on Solana</title>
+  <meta charset="utf-8" />
+  <title>Xence Swap · AXM routing & utility token on Solana</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta
     name="description"
-    content="Xence Swap routes liquidity for AXM on Solana using Jupiter, the leading aggregator."
+    content="Xence Swap routes your AXM trades through Jupiter, the leading liquidity aggregator on Solana. AXM is the routing & utility token that powers discounts, fee rebates and integrations."
   />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+  <link rel="icon" href="https://raw.githubusercontent.com/barissaylirs22-star/axm-assets/main/axm-logo.png" />
+
   <style>
     :root {
-      --bg: #020617;
-      --bg-soft: #020617;
-      --card-bg: rgba(15, 23, 42, 0.96);
-      --card-border: rgba(148, 163, 184, 0.4);
-      --accent-1: #38bdf8;
-      --accent-2: #a855f7;
-      --accent-3: #22c55e;
-      --accent-pill-bg: rgba(56, 189, 248, 0.12);
-      --text-main: #e5e7eb;
-      --text-soft: #9ca3af;
-      --text-muted: #6b7280;
-      --danger: #f97373;
+      --bg-main: #040816;
+      --bg-panel: #071021;
+      --bg-panel-alt: #050b17;
+      --accent-cyan: #2fd3ff;
+      --accent-purple: #c66bff;
+      --accent-green: #29f18c;
+      --accent-yellow: #ffc857;
+      --text-main: #f5f7ff;
+      --text-muted: #9ea8c7;
+      --border-soft: #1a2236;
+      --chip-bg: #0b1426;
+      --chip-border: #28324a;
+      --danger: #ff7a6c;
     }
 
     * {
@@ -38,632 +33,675 @@
       padding: 0;
     }
 
-    html,
     body {
-      height: 100%;
-    }
-
-    body {
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 55%),
-        radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.16), transparent 55%),
-        var(--bg-soft);
-      color: var(--text-main);
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .page {
       min-height: 100vh;
-      padding: 32px 16px 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1e2444 0, #040816 55%)
+        fixed;
     }
 
-    .shell {
-      width: 100%;
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page-shell {
       max-width: 1280px;
+      margin: 32px auto 40px;
+      padding: 0 16px;
     }
 
-    header {
+    /* ---------- HEADER ---------- */
+
+    .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 24px;
       margin-bottom: 28px;
-      gap: 16px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
     }
 
-    .brand-logo {
-      width: 56px;
-      height: 56px;
+    .logo-circle {
+      width: 84px; /* logo daha büyük */
+      height: 84px;
       border-radius: 999px;
-      overflow: hidden;
-      background: radial-gradient(circle at 30% 20%, #38bdf8, #a855f7);
+      background:
+        radial-gradient(circle at 30% 0%, rgba(255, 255, 255, 0.15), transparent 55%),
+        radial-gradient(circle at 70% 100%, rgba(101, 255, 218, 0.14), transparent 55%),
+        radial-gradient(circle at 0% 100%, rgba(92, 163, 255, 0.18), transparent 60%),
+        #050817;
       box-shadow:
-        0 0 0 2px rgba(15, 23, 42, 0.7),
-        0 18px 45px rgba(56, 189, 248, 0.55);
-    }
-
-    .brand-logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .brand-text h1 {
-      font-size: 20px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    .brand-text h1 span {
-      color: var(--accent-1);
-    }
-
-    .brand-sub {
-      font-size: 12px;
-      color: var(--text-soft);
-      max-width: 360px;
-    }
-
-    .top-right {
+        0 0 0 1px rgba(143, 212, 255, 0.18),
+        0 18px 40px rgba(0, 0, 0, 0.75);
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .logo-circle::before {
+      content: "";
+      position: absolute;
+      inset: 16%;
+      border-radius: inherit;
+      background-image: url("https://raw.githubusercontent.com/barissaylirs22-star/axm-assets/main/axm-logo.png");
+      background-size: cover;
+      background-position: center;
+      opacity: 0.98;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand-title {
+      letter-spacing: 0.16em;
+      font-size: 14px;
+      text-transform: uppercase;
+      color: #f5f7ff;
+    }
+
+    .brand-subtitle {
       font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+    }
+
+    .header-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
     }
 
     .pill {
-      padding: 6px 12px;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      color: var(--text-soft);
+      padding: 6px 14px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      border: 1px solid rgba(152, 218, 255, 0.35);
+      background: linear-gradient(
+        90deg,
+        rgba(14, 213, 255, 0.16),
+        rgba(137, 93, 255, 0.16)
+      );
+      color: #e4f3ff;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      white-space: nowrap;
     }
 
     .pill-dot {
       width: 8px;
       height: 8px;
       border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+      background: radial-gradient(circle at 30% 0, #8dffe7, #2dd4ff);
+      box-shadow: 0 0 8px rgba(45, 212, 255, 0.8);
     }
 
-    main {
+    .pill-mint {
+      border-color: rgba(152, 218, 255, 0.3);
+      background: radial-gradient(circle at 0 0, rgba(46, 213, 255, 0.2), transparent 60%),
+        #07111f;
+    }
+
+    /* ---------- LAYOUT ---------- */
+
+    .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
-      gap: 24px;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.1fr);
+      gap: 22px;
     }
 
     @media (max-width: 960px) {
-      main {
+      .layout {
         grid-template-columns: minmax(0, 1fr);
       }
-      header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .top-right {
-        align-self: stretch;
-        justify-content: space-between;
-      }
     }
 
-    .card {
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 60%),
-        radial-gradient(circle at top right, rgba(168, 85, 247, 0.12), transparent 55%),
-        var(--card-bg);
-      border-radius: 28px;
-      border: 1px solid var(--card-border);
+    .panel {
+      background: radial-gradient(
+          circle at top left,
+          rgba(46, 213, 255, 0.18),
+          transparent 55%
+        ),
+        radial-gradient(
+          circle at bottom right,
+          rgba(198, 107, 255, 0.16),
+          transparent 55%
+        ),
+        var(--bg-panel);
+      border-radius: 22px;
+      padding: 22px 22px 20px;
+      border: 1px solid rgba(67, 89, 138, 0.7);
       box-shadow:
-        0 24px 60px rgba(15, 23, 42, 0.9),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
-      padding: 24px 24px 22px;
+        0 20px 45px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(6, 13, 30, 0.8);
     }
 
-    .card-right {
-      background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 60%),
-        radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.18), transparent 60%),
-        var(--card-bg);
+    .panel--right {
+      background: radial-gradient(
+          circle at top right,
+          rgba(82, 196, 255, 0.23),
+          transparent 55%
+        ),
+        radial-gradient(
+          circle at bottom left,
+          rgba(188, 121, 255, 0.2),
+          transparent 55%
+        ),
+        var(--bg-panel-alt);
+      border-color: rgba(61, 102, 170, 0.9);
     }
 
-    .left-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
+    /* ---------- LEFT SIDE CONTENT ---------- */
 
-    .left-title span.highlight {
-      color: var(--accent-1);
-    }
-
-    .left-sub {
-      font-size: 14px;
-      color: var(--text-soft);
-      max-width: 520px;
-      line-height: 1.55;
-      margin-bottom: 18px;
-    }
-
-    .tag-row {
+    .kicker-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-
-    .tag {
+      gap: 10px;
+      margin-bottom: 14px;
       font-size: 11px;
-      padding: 6px 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+    }
+
+    .kicker-pill {
       border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      color: var(--text-soft);
-      background: rgba(15, 23, 42, 0.85);
+      padding: 5px 10px;
+      background: rgba(8, 17, 42, 0.9);
+      border: 1px solid var(--chip-border);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .tag.tag-primary {
-      border-color: rgba(56, 189, 248, 0.7);
-      color: var(--accent-1);
-      background: rgba(15, 23, 42, 0.9);
+    .kicker-pill span.dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent-green);
+      box-shadow: 0 0 6px rgba(41, 241, 140, 0.7);
     }
 
-    .metrics {
+    .hero-title {
+      font-size: 28px;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+
+    .hero-title span.axm {
+      color: var(--accent-cyan);
+    }
+
+    .hero-lead {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin-bottom: 20px;
+    }
+
+    .stats-row {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 18px;
     }
 
-    .metric {
-      flex: 1 1 120px;
-      min-width: 120px;
-      border-radius: 16px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(30, 64, 175, 0.6);
-      padding: 10px 12px;
-    }
-
-    .metric-label {
+    .chip {
+      background: var(--chip-bg);
+      border-radius: 999px;
+      border: 1px solid var(--chip-border);
+      padding: 6px 12px;
       font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.13em;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip strong {
+      color: #e4ebff;
+      font-weight: 600;
+    }
+
+    .mini-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
       color: var(--text-muted);
       margin-bottom: 4px;
     }
 
-    .metric-value {
-      font-size: 13px;
-      font-weight: 600;
+    .data-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
-    .metric-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    @media (max-width: 900px) {
+      .data-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .data-card {
+      background: rgba(8, 15, 34, 0.96);
+      border-radius: 14px;
+      border: 1px solid var(--border-soft);
+      padding: 10px 12px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .data-label {
       font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: var(--accent-pill-bg);
-      color: var(--accent-1);
-      margin-left: 6px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
     }
 
-    .metric-pill-dot {
-      width: 6px;
-      height: 6px;
+    .data-value {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+        Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      color: #e9f3ff;
+      overflow-wrap: anywhere;
+    }
+
+    .data-tag {
+      margin-top: 2px;
+      align-self: flex-start;
       border-radius: 999px;
-      background: var(--accent-1);
+      padding: 3px 8px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      border: 1px solid rgba(60, 211, 152, 0.8);
+      color: #9dfad0;
+      background: linear-gradient(
+        135deg,
+        rgba(0, 209, 151, 0.2),
+        rgba(29, 132, 255, 0.18)
+      );
     }
 
     .section-title {
       font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.16em;
       color: var(--text-muted);
       margin-bottom: 8px;
     }
 
     .bullets {
-      border-radius: 18px;
-      border: 1px solid rgba(51, 65, 85, 0.9);
-      background: rgba(15, 23, 42, 0.88);
-      padding: 12px 13px;
-      font-size: 12px;
-      color: var(--text-soft);
-    }
-
-    .bullets ul {
-      list-style: none;
-    }
-
-    .bullets li {
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    .bullets li:last-child {
-      margin-bottom: 0;
-    }
-
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: var(--accent-1);
-      margin-top: 6px;
-    }
-
-    .dot-alt {
-      background: var(--accent-3);
-    }
-
-    .mint-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .mint-box {
-      flex: 1 1 160px;
-      min-width: 160px;
+      background: rgba(7, 13, 30, 0.96);
       border-radius: 14px;
-      border: 1px dashed rgba(75, 85, 99, 0.9);
-      padding: 8px 10px;
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .mint-label {
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
+      border: 1px solid var(--border-soft);
+      padding: 12px 14px 10px;
+      font-size: 12px;
       color: var(--text-muted);
-      margin-bottom: 3px;
-    }
-
-    .mint-value {
-      font-family: "JetBrains Mono", Consolas, monospace;
-      font-size: 11px;
-      color: var(--text-main);
-      word-break: break-all;
-    }
-
-    .jup-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      gap: 12px;
-    }
-
-    .jup-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .jup-sub {
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .jup-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(34, 197, 94, 0.7);
-      font-size: 11px;
-      color: #bbf7d0;
-    }
-
-    .jup-status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 8px rgba(34, 197, 94, 0.9);
-    }
-
-    .jup-card {
-      height: 100%;
       display: flex;
       flex-direction: column;
-    }
-
-    .jup-widget {
-      flex: 1 1 auto;
-      min-height: 380px;
-      border-radius: 22px;
-      overflow: hidden;
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-    }
-
-    .jup-widget iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 22px;
-    }
-
-    .jup-direct-link {
-      margin-top: 16px;
-      padding: 14px 14px 13px;
-      border-radius: 18px;
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.95));
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      font-size: 12px;
-      color: var(--text-soft);
-    }
-
-    .jup-direct-link h3 {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: var(--text-main);
-    }
-
-    .jup-direct-link p {
-      margin-bottom: 10px;
-    }
-
-    .jup-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 9px 16px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
-      color: #020617;
-      font-weight: 600;
-      font-size: 13px;
-      text-decoration: none;
-      box-shadow:
-        0 14px 32px rgba(56, 189, 248, 0.4),
-        0 0 0 1px rgba(15, 23, 42, 0.7);
-      transition: transform 0.12s ease, box-shadow 0.12s ease;
-    }
-
-    .jup-button span.icon {
-      font-size: 15px;
-    }
-
-    .jup-button:hover {
-      transform: translateY(-1px);
-      box-shadow:
-        0 18px 40px rgba(56, 189, 248, 0.6),
-        0 0 0 1px rgba(15, 23, 42, 0.7);
-    }
-
-    .jup-footer {
-      margin-top: 10px;
-      font-size: 10px;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       gap: 8px;
     }
 
-    .jup-footer span {
-      display: inline-flex;
+    .bullets li {
+      list-style: none;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .bullets li::before {
+      content: "•";
+      color: var(--accent-cyan);
+      margin-top: 0;
+      font-size: 14px;
+    }
+
+    .footer-meta {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 10px;
+      color: var(--text-muted);
+      justify-content: space-between;
+    }
+
+    /* ---------- RIGHT SIDE: JUPITER ---------- */
+
+    .right-header-row {
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .right-title-block {
+      display: flex;
+      flex-direction: column;
       gap: 4px;
     }
 
-    footer {
-      margin-top: 26px;
+    .right-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .right-subtitle {
       font-size: 11px;
       color: var(--text-muted);
-      text-align: center;
     }
 
-    footer a {
-      color: var(--accent-1);
-      text-decoration: none;
+    .right-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
     }
 
-    footer a:hover {
-      text-decoration: underline;
+    .right-chip {
+      border-radius: 999px;
+      padding: 5px 10px;
+      border: 1px solid var(--chip-border);
+      background: rgba(6, 14, 32, 0.85);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .right-chip span {
+      color: #e6f2ff;
+    }
+
+    .jupiter-frame {
+      margin-top: 10px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(76, 119, 194, 0.9);
+      background: rgba(2, 6, 23, 0.95);
+      position: relative;
+    }
+
+    #jupiter-terminal {
+      min-height: 460px;
+    }
+
+    .jup-footer-tip {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(5, 13, 32, 0.92);
+      border-radius: 14px;
+      border: 1px solid rgba(24, 38, 80, 0.9);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .jup-footer-tip strong {
+      color: #e9f3ff;
+    }
+
+    .jup-footer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-secondary {
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 11px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      border: 1px solid rgba(92, 154, 255, 0.9);
+      background: radial-gradient(
+        circle at top left,
+        rgba(61, 204, 255, 0.28),
+        rgba(16, 24, 59, 0.95)
+      );
+      color: #f3f7ff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-secondary span.icon {
+      font-size: 12px;
     }
   </style>
 </head>
+
 <body>
-  <div class="page">
-    <div class="shell">
-      <header>
-        <div class="brand">
-          <div class="brand-logo">
-            <img
-              src="https://raw.githubusercontent.com/barissaylirs22-star/axm-assets/main/axm-logo.png"
-              alt="AXM logo"
-            />
+  <div class="page-shell">
+    <!-- HEADER -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-circle"></div>
+        <div class="brand-text">
+          <div class="brand-title">XENCE SWAP</div>
+          <div class="brand-subtitle">
+            Aggregated liquidity for AXM &amp; Solana ecosystem
           </div>
-          <div class="brand-text">
-            <h1><span>XENCE</span> SWAP</h1>
-            <div class="brand-sub">
-              Aggregated liquidity for AXM &amp; Solana ecosystem. Routing &amp; utility token:
-              <strong>AXM</strong>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <div class="pill">
+          <span class="pill-dot"></span>
+          <span>Mainnet-beta · Powered by Jupiter</span>
+        </div>
+        <div class="pill pill-mint">
+          <span>AXM mint:</span>
+          <strong>9hVvYzPC2GyJUayfZhplxGgBPapDGQzjS2RfKLds2XPEi</strong>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <main class="layout">
+      <!-- LEFT PANEL -->
+      <section class="panel">
+        <div class="kicker-row">
+          <div class="kicker-pill">
+            <span class="dot"></span>
+            <span>AXM · routing &amp; utility layer</span>
+          </div>
+          <div class="kicker-pill">Aggregator · Jupiter</div>
+          <div class="kicker-pill">Network · Solana mainnet-beta</div>
+        </div>
+
+        <h1 class="hero-title">
+          Execute <span class="axm">AXM</span> trades with deep Solana liquidity.
+        </h1>
+        <p class="hero-lead">
+          Xence Swap routes your orders through Jupiter, the leading liquidity
+          aggregator on Solana mainnet. AXM sits as the routing &amp; utility
+          token on top of this layer, unlocking better pricing, rebates and
+          integrations over time.
+        </p>
+
+        <div class="stats-row">
+          <div class="chip">
+            <strong>AXM</strong>
+            <span>· routing &amp; utility token</span>
+          </div>
+          <div class="chip">
+            <strong>Aggregator</strong>
+            <span>Jupiter</span>
+          </div>
+          <div class="chip">
+            <strong>Network</strong>
+            <span>Solana mainnet-beta</span>
+          </div>
+        </div>
+
+        <div class="data-row">
+          <div class="data-card">
+            <div class="data-label">AXM name</div>
+            <div class="data-value">Axiom (AXM)</div>
+            <div class="data-value">SPL token · 9 decimals · fixed supply</div>
+          </div>
+
+          <div class="data-card">
+            <div class="data-label">AXM mint (mainnet)</div>
+            <div class="data-value">
+              9hVvYzPC2GyJUayfZhplxGgBPapDGQzjS2RfKLds2XPEi
+            </div>
+            <div class="data-tag">Verified mint</div>
+          </div>
+
+          <div class="data-card">
+            <div class="data-label">Update authority</div>
+            <div class="data-value">
+              3HGsmT4AHvd2QMHtop7osgQ34wmkwE35VF3Zisg8sfpb
+            </div>
+            <div class="data-tag">Locked to creator</div>
+          </div>
+        </div>
+
+        <div class="section-title">Why AXM exists</div>
+        <ul class="bullets">
+          <li>
+            <span>
+              <strong>Jupiter-powered routing.</strong>
+              Orders are routed through top Solana DEXs via Jupiter, targeting
+              the best execution and low slippage.
+            </span>
+          </li>
+          <li>
+            <span>
+              <strong>Simple front-door.</strong>
+              Xence Swap keeps the UX focused, while the heavy routing logic
+              lives inside Jupiter.
+            </span>
+          </li>
+          <li>
+            <span>
+              <strong>Integration-ready utility.</strong>
+              AXM can plug into yield flows, fee rebates, access tiers and more
+              over time.
+            </span>
+          </li>
+        </ul>
+
+        <div class="footer-meta">
+          <span>
+            © Axiom · AXM routing &amp; utility token on Solana mainnet-beta.
+          </span>
+          <span>
+            For production swaps, always verify the AXM mint before trading.
+          </span>
+        </div>
+      </section>
+
+      <!-- RIGHT PANEL: JUPITER -->
+      <section class="panel panel--right">
+        <div class="right-header-row">
+          <div class="right-title-block">
+            <div class="right-title">Xence Swap · AXM</div>
+            <div class="right-subtitle">
+              Connect your Solana wallet and swap AXM via Jupiter aggregator.
+            </div>
+          </div>
+          <div class="right-chip-row">
+            <div class="right-chip">
+              <span class="pill-dot" style="width:6px;height:6px;"></span>
+              <span>Jupiter plugin live</span>
             </div>
           </div>
         </div>
-        <div class="top-right">
-          <div class="pill">
-            <span class="pill-dot"></span>
-            Mainnet-beta · Powered by Jupiter
-          </div>
-          <div class="pill">AXM mint: 9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi</div>
+
+        <div class="jupiter-frame">
+          <!-- Jupiter will embed its UI into this div -->
+          <div id="jupiter-terminal"></div>
         </div>
-      </header>
 
-      <main>
-        <!-- LEFT PANEL -->
-        <section class="card">
-          <div class="left-title">
-            Trade <span class="highlight">AXM</span> with deep Solana liquidity.
+        <div class="jup-footer-tip">
+          <strong>Wallet not detected here?</strong>
+          <span>
+            Some browsers and extensions block embedded wallets inside iframes.
+            If Phantom does not appear in the panel above, you can open the full
+            Jupiter app with AXM pre-selected.
+          </span>
+
+          <div class="jup-footer-actions">
+            <a
+              class="btn-secondary"
+              href="https://jup.ag/swap/USDC-9hVvYzPC2GyJUayfZhplxGgBPapDGQzjS2RfKLds2XPEi"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="icon">↗</span>
+              <span>Open AXM on Jupiter</span>
+            </a>
           </div>
-          <p class="left-sub">
-            Xence Swap routes your trades through <strong>Jupiter</strong>, the leading liquidity
-            aggregator on Solana, giving you efficient pricing while AXM works as your utility &amp;
-            routing layer.
-          </p>
-
-          <div class="tag-row">
-            <span class="tag tag-primary">AXM · routing &amp; utility token</span>
-            <span class="tag">Aggregator · Jupiter</span>
-            <span class="tag">Network · Solana mainnet-beta</span>
-          </div>
-
-          <div class="metrics">
-            <div class="metric">
-              <div class="metric-label">AXM mint</div>
-              <div class="metric-value">
-                9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi
-                <span class="metric-pill">
-                  <span class="metric-pill-dot"></span>
-                  Fixed supply
-                </span>
-              </div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Token standard</div>
-              <div class="metric-value">SPL token · 9 decimals</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Aggregator routing</div>
-              <div class="metric-value">
-                Jupiter <span class="metric-pill"><span class="metric-pill-dot"></span>Best route</span>
-              </div>
-            </div>
-          </div>
-
-          <div style="margin-top: 8px;">
-            <div class="section-title">AXM utility highlights</div>
-            <div class="bullets">
-              <ul>
-                <li>
-                  <span class="dot"></span>
-                  <span>
-                    <strong>Jupiter-powered routing.</strong> Trades are routed through top Solana
-                    DEXs via Jupiter, targeting best price impact.
-                  </span>
-                </li>
-                <li>
-                  <span class="dot dot-alt"></span>
-                  <span>
-                    <strong>Simple front door.</strong> Xence Swap focuses on UX while routing logic
-                    and safety live inside Jupiter.
-                  </span>
-                </li>
-                <li>
-                  <span class="dot"></span>
-                  <span>
-                    <strong>Ready for integrations.</strong> AXM can plug into yield flows, access
-                    passes, fee rebates &amp; more over time.
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="mint-row">
-            <div class="mint-box">
-              <div class="mint-label">AXM mint (mainnet)</div>
-              <div class="mint-value">
-                9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi
-              </div>
-            </div>
-            <div class="mint-box">
-              <div class="mint-label">Update authority</div>
-              <div class="mint-value">3HGsmT4AHvd2QMHtop7osgQ34wmkwE35VF3Zisg8sfpb</div>
-            </div>
-          </div>
-        </section>
-
-        <!-- RIGHT PANEL (JUPITER) -->
-        <section class="card card-right">
-          <div class="jup-card">
-            <div class="jup-header-row">
-              <div>
-                <div class="jup-title">Xence Swap · AXM</div>
-                <div class="jup-sub">
-                  Connect your Solana wallet and swap AXM via Jupiter aggregator.
-                </div>
-              </div>
-              <div class="jup-status">
-                <span class="jup-status-dot"></span>
-                Jupiter plugin live
-              </div>
-            </div>
-
-            <div class="jup-widget">
-              <!-- Jupiter Terminal embed (iframe) -->
-              <iframe
-                src="https://terminal.jup.ag/#/swap/USDC-9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi"
-                title="Jupiter swap for AXM"
-                loading="lazy"
-                allow="clipboard-write; clipboard-read; web-share"
-              ></iframe>
-            </div>
-
-            <div class="jup-direct-link">
-              <h3>Wallet not detected here?</h3>
-              <p>
-                Some browser wallets do not inject into embedded frames.  
-                If no wallet appears in the panel above, you can open the full Jupiter app
-                with AXM pre-selected and connect Phantom there.
-              </p>
-              <a
-                class="jup-button"
-                href="https://jup.ag/swap/USDC-9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span class="icon">↗</span>
-                <span>Open AXM on Jupiter</span>
-              </a>
-            </div>
-
-            <div class="jup-footer">
-              <span>Powered by Jupiter aggregator.</span>
-              <span>For production, always verify the AXM mint before swapping.</span>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer>
-        Xence Swap · Concept UI for AXM on Solana mainnet-beta.  
-        Token mint:
-        <a
-          href="https://explorer.solana.com/address/9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi?cluster=mainnet-beta"
-          target="_blank"
-          rel="noopener noreferrer"
-          >9hVvYzPC2GyJUayfZhpUxGgBPaDgQzjs2RfkLds2XPEi</a
-        >.
-      </footer>
-    </div>
+        </div>
+      </section>
+    </main>
   </div>
+
+  <!-- Jupiter Plugin -->
+  <script src="https://terminal.jup.ag/main-v2.js"></script>
+  <script>
+    // AXM mainnet mint
+    const AXM_MINT_MAINNET = "9hVvYzPC2GyJUayfZhplxGgBPapDGQzjS2RfKLds2XPEi";
+
+    window.addEventListener("load", async () => {
+      try {
+        await window.Jupiter.init({
+          displayMode: "integrated",
+          integratedTargetId: "jupiter-terminal",
+
+          // Jupiter will use its own RPC setup; we don't override endpoint
+          // to avoid browser / CORS / rate-limit issues.
+
+          formProps: {
+            // Common stablecoin as default input
+            defaultInputMint: "So11111111111111111111111111111111111111112", // SOL wrapped via Jupiter
+            defaultOutputMint: AXM_MINT_MAINNET,
+            fixedOutputMint: AXM_MINT_MAINNET,
+          },
+
+          enableWalletConnection: true,
+          strictTokenList: false,
+        });
+      } catch (err) {
+        console.error("Jupiter init failed:", err);
+      }
+    });
+  </script>
 </body>
 </html>
-
 

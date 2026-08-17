@@ -1,0 +1,42 @@
+# Cloudflare Worker — production same-origin APIs for axiom-swap.xyz
+#
+# Deploy (after HELIUS_API_KEY secret is set):
+#   npx wrangler secret put HELIUS_API_KEY
+#   npx wrangler deploy
+#
+# Local Vite continues to serve /api/* via middleware + .data file store.
+# This Worker is for production only.
+
+name = "axiom-holders-api"
+main = "workers/holders-rpc.js"
+compatibility_date = "2024-12-01"
+workers_dev = true
+
+# Same-origin routes on the production apex domain.
+# Requires DNS zone "axiom-swap.xyz" on this Cloudflare account.
+# Prefer these over an api.* subdomain so the browser keeps relative /api/* calls.
+# These patterns take precedence over static SPA fallback for /api/*.
+#
+# IMPORTANT: CF route matching includes the query string. Exact paths without a
+# trailing * do NOT match `?mint=...` (falls through to GitHub Pages HTML 404).
+# Trailing * is required for GET /api/holder-intel?mint=... (and any future qs).
+# Still narrow — does not capture `/`, assets, or non-/api frontend routes.
+routes = [
+  { pattern = "axiom-swap.xyz/api/solana-holders*", zone_name = "axiom-swap.xyz" },
+  { pattern = "axiom-swap.xyz/api/holder-intel*", zone_name = "axiom-swap.xyz" },
+  { pattern = "axiom-swap.xyz/api/health*", zone_name = "axiom-swap.xyz" },
+]
+
+# Persistent holder history — Cloudflare Workers KV
+# Namespace name (dashboard): AXIOM_HOLDER_INTEL
+# Runtime binding name (env.AXIOM_HOLDER_INTEL): must match Worker code.
+[[kv_namespaces]]
+binding = "AXIOM_HOLDER_INTEL"
+id = "6ba20b969a044399b00227fca8ec0401"
+# Optional preview binding for `wrangler dev`:
+# preview_id = "REPLACE_WITH_AXIOM_HOLDER_INTEL_KV_PREVIEW_ID"
+
+# Secrets (set via CLI — never commit values):
+#   npx wrangler secret put HELIUS_API_KEY
+# Optional instead of HELIUS_API_KEY:
+#   npx wrangler secret put SOLANA_HOLDERS_RPC_URL

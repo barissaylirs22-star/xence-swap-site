@@ -57,7 +57,7 @@ function emptyGrowth(
     deltas: [],
     primaryLine: null,
     recordedMs: null,
-    statusLine: building ? "Building history…" : null,
+    statusLine: building ? "Building history..." : null,
   };
 }
 
@@ -74,7 +74,7 @@ function emptyWhale(building: boolean): WhaleMovementFacts {
     windows: [],
     signals: [],
     recordedMs: null,
-    statusLine: building ? "Building history…" : null,
+    statusLine: building ? "Building history..." : null,
   };
 }
 

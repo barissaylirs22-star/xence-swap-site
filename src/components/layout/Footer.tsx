@@ -36,14 +36,16 @@ export function Footer() {
             <a className={styles.link} href="#community">
               Community
             </a>
-            <a
-              className={`${styles.link} ${styles.external}`}
-              href={SOCIAL.x}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              X
-            </a>
+            {SOCIAL.x ? (
+              <a
+                className={`${styles.link} ${styles.external}`}
+                href={SOCIAL.x}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                X
+              </a>
+            ) : null}
             <a
               className={`${styles.link} ${styles.external}`}
               href={SOCIAL.github}

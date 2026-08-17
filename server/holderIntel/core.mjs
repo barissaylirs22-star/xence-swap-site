@@ -172,7 +172,7 @@ function buildingStatusLine(recordedMs, building) {
   if (recordedMs != null && recordedMs > 0) {
     return `Building history — ${formatDuration(recordedMs)} recorded`;
   }
-  return "Building history…";
+  return "Building history...";
 }
 
 export function formatDuration(ms) {

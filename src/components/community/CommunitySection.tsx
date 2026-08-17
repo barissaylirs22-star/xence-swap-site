@@ -5,13 +5,17 @@ import { BrandMark } from "@/components/visual/BrandMark";
 import styles from "./CommunitySection.module.css";
 
 const LINKS = [
-  {
-    platform: "Social",
-    name: "X",
-    meta: "Official updates",
-    href: SOCIAL.x,
-    featured: true,
-  },
+  ...(SOCIAL.x
+    ? [
+        {
+          platform: "Social",
+          name: "X",
+          meta: "Official updates",
+          href: SOCIAL.x,
+          featured: true,
+        } as const,
+      ]
+    : []),
   {
     platform: "Source",
     name: "GitHub",

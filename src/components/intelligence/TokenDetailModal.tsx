@@ -66,7 +66,7 @@ const COPY = {
   whaleUnavailable: "Whale activity unavailable",
   whaleLoading: "Analyzing whale activity…",
   smartMoneyNote: "Verified Smart Money: unavailable",
-  buildingHistory: "Building history…",
+  buildingHistory: "Building history...",
   interpretation: "Notes",
   revoked: "Revoked",
   active: "Active",

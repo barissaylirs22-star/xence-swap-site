@@ -21,7 +21,7 @@ function emptyIntelBody() {
       deltas: [],
       primaryLine: null,
       recordedMs: null,
-      statusLine: "Building history…",
+      statusLine: "Building history...",
     },
     whale: {
       available: false,
@@ -35,7 +35,7 @@ function emptyIntelBody() {
       windows: [],
       signals: [],
       recordedMs: null,
-      statusLine: "Building history…",
+      statusLine: "Building history...",
     },
     interpretations: [],
     recordedMs: null,

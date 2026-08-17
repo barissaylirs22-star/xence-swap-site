@@ -1,0 +1,142 @@
+.section {
+  position: relative;
+  z-index: 1;
+}
+
+.shell {
+  width: 100%;
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 1rem;
+}
+
+.btn:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.viewport {
+  width: 100%;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.viewportDragging {
+  cursor: grabbing;
+}
+
+.track {
+  display: flex;
+  gap: var(--card-gap);
+  transition: transform 480ms var(--ease-out);
+  will-change: transform;
+}
+
+.trackInstant {
+  transition: none;
+}
+
+/* Mobile: one primary card */
+.card {
+  flex: 0 0 100%;
+  min-height: 148px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background:
+    radial-gradient(ellipse at 18% 0%, rgba(199, 210, 255, 0.1), transparent 48%),
+    rgba(12, 18, 34, 0.78);
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Tablet: two cards */
+@media (min-width: 720px) {
+  .card {
+    flex-basis: calc((100% - var(--card-gap)) / 2);
+    min-height: 152px;
+  }
+}
+
+/* Desktop: three cards across the content grid */
+@media (min-width: 1024px) {
+  .card {
+    flex-basis: calc((100% - (var(--card-gap) * 2)) / 3);
+    min-height: 160px;
+    padding: 16px 16px 14px;
+  }
+}
+
+.cardMark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid var(--border-default);
+  object-fit: cover;
+  margin-bottom: auto;
+  filter: none;
+}
+
+.index {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+
+.title {
+  font-size: clamp(1.25rem, 1.8vw, 1.42rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.line {
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+  line-height: 1.35;
+  max-width: 18ch;
+}
+
+.progress {
+  margin-top: 12px;
+  height: 2px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  background: linear-gradient(90deg, #9db0ff, #e8ecff);
+  transition: width 480ms var(--ease-out);
+}

@@ -1,0 +1,26 @@
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: var(--space-3) var(--gutter)
+    calc(var(--space-3) + env(safe-area-inset-bottom));
+  background: linear-gradient(
+    to top,
+    rgba(4, 4, 10, 0.96) 35%,
+    rgba(4, 4, 10, 0)
+  );
+  pointer-events: none;
+}
+
+.bar > a {
+  pointer-events: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 1024px) {
+  .bar {
+    display: none;
+  }
+}

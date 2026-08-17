@@ -1,0 +1,34 @@
+.wrap {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.55;
+  z-index: 0;
+}
+
+.right {
+  right: -4%;
+  top: 10%;
+}
+
+.left {
+  left: -6%;
+  bottom: 8%;
+}
+
+.center {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.22;
+}
+
+@media (max-width: 899px) {
+  .wrap {
+    opacity: 0.28;
+  }
+
+  .right,
+  .left {
+    display: none;
+  }
+}

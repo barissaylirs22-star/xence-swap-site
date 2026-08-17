@@ -1,0 +1,90 @@
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 85% 55% at 50% -8%, rgba(70, 110, 220, 0.2), transparent 58%),
+    radial-gradient(ellipse 48% 36% at 12% 72%, rgba(120, 80, 220, 0.08), transparent 62%),
+    radial-gradient(ellipse 42% 32% at 92% 38%, rgba(40, 180, 220, 0.06), transparent 58%),
+    linear-gradient(180deg, #0c1426 0%, #0a1020 40%, #080e1a 100%);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  will-change: transform, opacity;
+}
+
+.a {
+  width: min(70vw, 760px);
+  height: min(70vw, 760px);
+  top: -18%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(90, 140, 255, 0.32), transparent 70%);
+  animation: breathe 16s var(--ease-out) infinite alternate;
+}
+
+.b {
+  width: min(42vw, 480px);
+  height: min(42vw, 480px);
+  top: 38%;
+  left: -8%;
+  background: radial-gradient(circle, rgba(140, 90, 255, 0.16), transparent 72%);
+  animation: drift 22s var(--ease-out) infinite alternate;
+}
+
+.c {
+  width: min(38vw, 420px);
+  height: min(38vw, 420px);
+  bottom: 0;
+  right: -4%;
+  background: radial-gradient(circle, rgba(60, 200, 230, 0.1), transparent 72%);
+  animation: drift 26s var(--ease-out) infinite alternate-reverse;
+}
+
+.texture {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, transparent 0%, rgba(8, 14, 28, 0.28) 55%, rgba(8, 14, 28, 0.78) 100%);
+}
+
+@keyframes breathe {
+  from {
+    opacity: 0.55;
+    transform: translateX(-50%) scale(1);
+  }
+  to {
+    opacity: 0.85;
+    transform: translateX(-50%) scale(1.08);
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(5%, -7%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .a,
+  .b,
+  .c {
+    animation: none;
+  }
+}

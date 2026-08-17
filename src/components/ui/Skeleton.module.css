@@ -1,0 +1,21 @@
+.skeleton {
+  display: block;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-xs);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: pulse 1.4s var(--ease-out) infinite;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}

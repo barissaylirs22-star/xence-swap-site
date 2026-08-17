@@ -1,0 +1,499 @@
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { AXIOM_LIVE } from "@/content/copy";
+import { SWAP_COPY } from "@/content/swap";
+import { TokenDetailModal } from "@/components/intelligence/TokenDetailModal";
+import { useAxiomLive } from "@/hooks/useAxiomLive";
+import { useClock } from "@/hooks/useClock";
+import { useDexMarketByMints } from "@/hooks/useDexMarketByMints";
+import { useDiscoveryEnrichment } from "@/hooks/useDiscoveryEnrichment";
+import { usePumpFunStream } from "@/hooks/usePumpFunStream";
+import { BrandMark } from "@/components/visual/BrandMark";
+import type { DexMarketMetrics } from "@/lib/market/dexscreener";
+import {
+  applyDiscoveryFilter,
+  DISCOVERY_FILTERS,
+  DISCOVERY_PAGE_SIZE,
+  type DiscoveryEnrichment,
+  type DiscoveryFilterId,
+} from "@/lib/discovery/filters";
+import {
+  computeLightweightAxiomScore,
+  lightweightBandTone,
+  type LightweightAxiomScore,
+} from "@/lib/discovery/lightweightScore";
+import {
+  formatCapOrFdv,
+  formatChangePct,
+  formatTokenPriceUsd,
+  formatVolumeUsd,
+  shortMint,
+} from "@/lib/tokens/catalog";
+import { formatLaunchAge, shortKey } from "@/lib/pump/mapToken";
+import type { PumpFeedStatus, PumpLaunchToken } from "@/lib/pump/types";
+import { isAxmToken } from "@/lib/tokens/axm";
+import type { AxiomLiveTabId } from "@/lib/tokens/live";
+import type { TokenAsset } from "@/lib/tokens/types";
+import type { RiskLevel } from "@/lib/intelligence/types";
+import { useSwapIntent } from "@/lib/swap/useSwapIntent";
+import styles from "./AxiomLivePanel.module.css";
+
+/** Prevent Token Detail render failures from blanking the entire homepage. */
+class TokenDetailErrorBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("[axiom] Token Detail render failed", error);
+  }
+
+  render() {
+    if (this.state.failed) {
+      return null;
+    }
+    return this.props.children;
+  }
+}
+
+function pumpStatusLabel(status: PumpFeedStatus): string {
+  switch (status) {
+    case "live":
+      return AXIOM_LIVE.statusLive;
+    case "reconnecting":
+      return AXIOM_LIVE.statusReconnecting;
+    case "fallback":
+      return AXIOM_LIVE.statusFallback;
+    default:
+      return AXIOM_LIVE.statusConnecting;
+  }
+}
+
+function dash(value: string | null | undefined): string {
+  return value && value.length > 0 ? value : "—";
+}
+
+function changeClass(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return styles.muted;
+  }
+  if (value > 0) return styles.up;
+  if (value < 0) return styles.down;
+  return styles.muted;
+}
+
+function mergeMetrics(
+  token: TokenAsset,
+  metrics?: DexMarketMetrics,
+): TokenAsset {
+  if (!metrics) return token;
+  return {
+    ...token,
+    priceUsd: metrics.priceUsd ?? token.priceUsd ?? null,
+    priceChange5mPct: metrics.priceChange5mPct ?? token.priceChange5mPct ?? null,
+    priceChange1hPct: metrics.priceChange1hPct ?? token.priceChange1hPct ?? null,
+    priceChange24hPct:
+      metrics.priceChange24hPct ?? token.priceChange24hPct ?? null,
+    volume24hUsd: metrics.volume24hUsd ?? token.volume24hUsd ?? null,
+    liquidityUsd: metrics.liquidityUsd ?? token.liquidityUsd ?? null,
+    marketCapUsd: metrics.marketCapUsd ?? token.marketCapUsd ?? null,
+    fdvUsd: metrics.fdvUsd ?? token.fdvUsd ?? null,
+    listedAt: metrics.listedAt ?? token.listedAt ?? null,
+  };
+}
+
+function riskBadgeClass(level: RiskLevel | null | undefined): string {
+  if (level === "LOW") return styles.riskLow;
+  if (level === "MEDIUM") return styles.riskMed;
+  if (level === "HIGH") return styles.riskHigh;
+  return styles.riskUnknown;
+}
+
+function axmBadgeClass(score: LightweightAxiomScore | null | undefined): string {
+  if (!score) return styles.axmMuted;
+  const tone = lightweightBandTone(score.band);
+  if (tone === "strong") return styles.axmStrong;
+  if (tone === "healthy") return styles.axmHealthy;
+  if (tone === "caution") return styles.axmCaution;
+  return styles.axmRisk;
+}
+
+export function AxiomLivePanel() {
+  const { tabs, loading } = useAxiomLive();
+  const pump = usePumpFunStream();
+  const { selectLiveReceiveToken } = useSwapIntent();
+  const [tab, setTab] = useState<AxiomLiveTabId>("trending");
+  const [detailToken, setDetailToken] = useState<TokenAsset | null>(null);
+  const [visibleCount, setVisibleCount] = useState(DISCOVERY_PAGE_SIZE);
+  const now = useClock(true);
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  const universe = useMemo(() => {
+    const trending = tabs.find((t) => t.id === "trending");
+    return trending?.tokens ?? tabs[0]?.tokens ?? [];
+  }, [tabs]);
+
+  const universeUnavailable = useMemo(() => {
+    const trending = tabs.find((t) => t.id === "trending");
+    return Boolean(trending?.unavailable);
+  }, [tabs]);
+
+  const enrichment = useDiscoveryEnrichment(
+    universe,
+    tab !== "pump" && universe.length > 0,
+  );
+
+  const filtered = useMemo(() => {
+    if (tab === "pump") return [];
+    return applyDiscoveryFilter(
+      universe,
+      tab as DiscoveryFilterId,
+      enrichment,
+      now,
+    );
+  }, [universe, tab, enrichment, now]);
+
+  const visible = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount],
+  );
+
+  useEffect(() => {
+    setVisibleCount(DISCOVERY_PAGE_SIZE);
+    listRef.current?.scrollTo({ top: 0 });
+  }, [tab]);
+
+  const openDetail = (token: TokenAsset) => {
+    if (!token.selectable || !token.mint) return;
+    setDetailToken(token);
+  };
+
+  const closeDetail = () => setDetailToken(null);
+
+  const tradeFromDetail = (token: TokenAsset) => {
+    setDetailToken(null);
+    selectLiveReceiveToken(token);
+  };
+
+  const onListScroll = () => {
+    const el = listRef.current;
+    if (!el || tab === "pump") return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 48) {
+      setVisibleCount((n) => Math.min(n + DISCOVERY_PAGE_SIZE, filtered.length));
+    }
+  };
+
+  const statusLabel =
+    tab === "pump" ? pumpStatusLabel(pump.status) : AXIOM_LIVE.statusLive;
+  const statusClass =
+    tab === "pump" && pump.status === "fallback"
+      ? styles.statusFallback
+      : tab === "pump" && pump.status === "reconnecting"
+        ? styles.statusReconnect
+        : styles.live;
+
+  return (
+    <aside className={styles.panel} aria-label={AXIOM_LIVE.title}>
+      <div className={styles.head}>
+        <div className={styles.titleRow}>
+          <span className={styles.title}>{AXIOM_LIVE.title}</span>
+          <span className={statusClass}>
+            <span className={styles.liveDot} aria-hidden />
+            {statusLabel}
+          </span>
+        </div>
+        {tab !== "pump" && universe.length > 0 ? (
+          <div className={styles.countNote}>
+            {filtered.length.toLocaleString("en-US")} tokens
+            {filtered.length < universe.length
+              ? ` · ${universe.length.toLocaleString("en-US")} loaded`
+              : null}
+          </div>
+        ) : null}
+      </div>
+
+      <div className={styles.tabs} role="tablist" aria-label="Discovery filters">
+        {DISCOVERY_FILTERS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === item.id}
+            className={[styles.tab, tab === item.id ? styles.tabActive : ""]
+              .filter(Boolean)
+              .join(" ")}
+            onClick={() => setTab(item.id)}
+          >
+            {item.title}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className={styles.list}
+        role="tabpanel"
+        ref={listRef}
+        onScroll={onListScroll}
+      >
+        {tab === "pump" ? (
+          <PumpTabBody
+            tokens={pump.tokens}
+            status={pump.status}
+            mode={pump.mode}
+            now={now}
+            onSelect={openDetail}
+          />
+        ) : loading && universe.length === 0 ? (
+          <div className={styles.note}>{AXIOM_LIVE.loading}</div>
+        ) : universeUnavailable ? (
+          <div className={styles.note}>{AXIOM_LIVE.unavailable}</div>
+        ) : filtered.length === 0 ? (
+          <div className={styles.note}>
+            {tab === "most_holders" || tab === "low_risk"
+              ? AXIOM_LIVE.enrichingFilter
+              : AXIOM_LIVE.empty}
+          </div>
+        ) : (
+          <>
+            {visible.map((token) => (
+              <LiveTokenRow
+                key={`${tab}-${token.mint}`}
+                token={token}
+                ageMs={token.listedAt ?? null}
+                now={now}
+                enrichment={enrichment.get(token.mint)}
+                onPick={openDetail}
+              />
+            ))}
+            {visibleCount < filtered.length ? (
+              <button
+                type="button"
+                className={styles.loadMore}
+                onClick={() =>
+                  setVisibleCount((n) =>
+                    Math.min(n + DISCOVERY_PAGE_SIZE, filtered.length),
+                  )
+                }
+              >
+                {AXIOM_LIVE.loadMore} ({filtered.length - visibleCount} more)
+              </button>
+            ) : null}
+          </>
+        )}
+      </div>
+
+      <TokenDetailErrorBoundary key={detailToken?.mint ?? "closed"}>
+        <TokenDetailModal
+          token={detailToken}
+          open={detailToken !== null}
+          onClose={closeDetail}
+          onTrade={tradeFromDetail}
+        />
+      </TokenDetailErrorBoundary>
+    </aside>
+  );
+}
+
+function PumpTabBody({
+  tokens,
+  status,
+  mode,
+  now,
+  onSelect,
+}: {
+  tokens: PumpLaunchToken[];
+  status: PumpFeedStatus;
+  mode: "realtime" | "fallback";
+  now: number;
+  onSelect: (token: TokenAsset) => void;
+}) {
+  const mints = useMemo(() => tokens.map((t) => t.mint), [tokens]);
+  const dexByMint = useDexMarketByMints(mints);
+
+  if (status === "connecting" && tokens.length === 0) {
+    return <div className={styles.note}>{AXIOM_LIVE.loading}</div>;
+  }
+
+  if (tokens.length === 0) {
+    return (
+      <div className={styles.note}>
+        {status === "fallback"
+          ? AXIOM_LIVE.unavailable
+          : AXIOM_LIVE.pumpWaiting}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {mode === "fallback" ? (
+        <div className={styles.feedNote}>{AXIOM_LIVE.pumpFallbackNote}</div>
+      ) : null}
+      {tokens.map((token) => {
+        const display = mergeMetrics(token, dexByMint.get(token.mint));
+        return (
+          <LiveTokenRow
+            key={`pump-${token.mint}`}
+            token={display}
+            ageMs={token.launchedAt}
+            now={now}
+            creator={token.creator}
+            onPick={onSelect}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function LiveTokenRow({
+  token,
+  ageMs,
+  now,
+  creator,
+  enrichment,
+  onPick,
+}: {
+  token: TokenAsset;
+  ageMs: number | null;
+  now: number;
+  creator?: string | null;
+  enrichment?: DiscoveryEnrichment;
+  onPick: (token: TokenAsset) => void;
+}) {
+  const price = formatTokenPriceUsd(token.priceUsd ?? null);
+  const ch5 = formatChangePct(token.priceChange5mPct ?? null);
+  const ch1h = formatChangePct(token.priceChange1hPct ?? null);
+  const liq = formatVolumeUsd(token.liquidityUsd ?? null);
+  const cap = formatCapOrFdv(token.marketCapUsd ?? null, token.fdvUsd ?? null);
+  const vol = formatVolumeUsd(token.volume24hUsd ?? null);
+  const age =
+    typeof ageMs === "number" && Number.isFinite(ageMs)
+      ? formatLaunchAge(ageMs, now)
+      : null;
+  const showUnverified =
+    Boolean(token.warnings?.includes("unverified")) ||
+    Boolean(token.warnings?.includes("unknown_metadata"));
+
+  const holders =
+    enrichment?.holderCount != null
+      ? enrichment.holderCount.toLocaleString("en-US")
+      : enrichment?.status === "loading"
+        ? "…"
+        : "—";
+  const riskLevel = enrichment?.riskLevel ?? null;
+  const axmScore = computeLightweightAxiomScore(token, enrichment, now);
+
+  return (
+    <button
+      type="button"
+      className={styles.row}
+      disabled={!token.selectable}
+      onClick={() => onPick(token)}
+      aria-label={`${token.symbol} token`}
+      data-mint={token.mint}
+      data-discovery-enrich="1"
+    >
+      <TokenIcon token={token} />
+      <div className={styles.body}>
+        <div className={styles.top}>
+          <div className={styles.meta}>
+            <div className={styles.symbolRow}>
+              <span className={styles.symbol}>{token.symbol}</span>
+              {riskLevel ? (
+                <span className={riskBadgeClass(riskLevel)}>{riskLevel}</span>
+              ) : null}
+              {showUnverified ? (
+                <span className={styles.badgeWarn}>{SWAP_COPY.unverified}</span>
+              ) : null}
+            </div>
+            <div className={styles.name}>{token.name}</div>
+            <div className={styles.mintLine}>
+              {shortMint(token.mint)}
+              {creator ? (
+                <span>
+                  {" "}
+                  · {AXIOM_LIVE.creator} {shortKey(creator)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className={styles.priceCol}>
+            {axmScore ? (
+              <span
+                className={[styles.axmBadge, axmBadgeClass(axmScore)].join(" ")}
+                title={`Lightweight Axiom Score · ${axmScore.label} · preview only`}
+              >
+                AXM {axmScore.score}
+              </span>
+            ) : null}
+            <span className={styles.price}>{dash(price)}</span>
+            <span className={styles.age}>{dash(age)}</span>
+          </div>
+        </div>
+
+        <div className={styles.metrics} aria-label="Market metrics">
+          <Metric
+            label="5m"
+            value={dash(ch5)}
+            valueClass={changeClass(token.priceChange5mPct)}
+          />
+          <Metric
+            label="1h"
+            value={dash(ch1h)}
+            valueClass={changeClass(token.priceChange1hPct)}
+          />
+          <Metric label="LIQ" value={dash(liq)} />
+          <Metric label="VOL" value={dash(vol)} />
+          <Metric
+            label={cap?.label ?? "MC"}
+            value={cap ? cap.value : "—"}
+          />
+          <Metric label="HLD" value={holders} />
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
+  return (
+    <span className={styles.metric}>
+      <span className={styles.metricLabel}>{label}</span>
+      <span className={[styles.metricValue, valueClass].filter(Boolean).join(" ")}>
+        {value}
+      </span>
+    </span>
+  );
+}
+
+function TokenIcon({ token }: { token: TokenAsset }) {
+  if (isAxmToken(token) || token.symbol === "AXM") {
+    return <BrandMark size={28} className={styles.icon} />;
+  }
+  if (token.iconUrl) {
+    return (
+      <img
+        className={styles.icon}
+        src={token.iconUrl}
+        alt=""
+        width={28}
+        height={28}
+        loading="lazy"
+      />
+    );
+  }
+  return <span className={styles.iconFallback} aria-hidden />;
+}

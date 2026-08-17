@@ -1,0 +1,81 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--overlay);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+
+.overlayOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sheet {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 61;
+  width: min(100%, 380px);
+  height: 100%;
+  background: #0a0b12;
+  border-left: 1px solid var(--border-default);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  transform: translateX(100%);
+  transition: transform var(--dur-3) var(--ease-out);
+}
+
+.sheetOpen {
+  transform: translateX(0);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.close {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.link {
+  display: block;
+  padding: var(--space-4) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text-secondary);
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.footer {
+  margin-top: auto;
+}

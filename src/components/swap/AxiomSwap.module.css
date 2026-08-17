@@ -1,0 +1,361 @@
+.root {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(8, 14, 28, 0.96);
+}
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  background: rgba(158, 182, 255, 0.05);
+}
+
+.bannerText {
+  min-width: 0;
+}
+
+.bannerTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+
+.bannerHint {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.stack {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+
+.field {
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.fieldTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.balance {
+  color: var(--text-tertiary);
+  font-size: 0.82rem;
+}
+
+.fieldMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.amount {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: var(--text-primary);
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  padding: 0;
+}
+
+.amount:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.amount::placeholder {
+  color: rgba(200, 212, 245, 0.28);
+}
+
+.token {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: rgba(16, 24, 43, 0.75);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: -0.02em;
+}
+
+.token:hover {
+  border-color: var(--border-strong);
+  background: rgba(24, 34, 58, 0.9);
+}
+
+.tokenCaret {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  margin-left: 2px;
+}
+
+.tokenMark {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  object-fit: cover;
+}
+
+.tokenDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #c9d4ff, #6d8cff);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.flipWrap {
+  display: grid;
+  place-items: center;
+  margin-block: -18px;
+  z-index: 1;
+}
+
+.flip {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: rgba(12, 18, 34, 0.95);
+  color: var(--text-primary);
+  font-size: 1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.flip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.details {
+  display: grid;
+  gap: 6px;
+  padding: 2px 2px 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.row strong {
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+}
+
+.slippageRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.slippageControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip {
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+.chipActive {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: rgba(158, 182, 255, 0.1);
+}
+
+.chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.status {
+  min-height: 18px;
+  font-size: 0.88rem;
+  color: var(--text-tertiary);
+}
+
+.statusWarn {
+  color: var(--warning);
+}
+
+.statusOk {
+  color: var(--accent-strong);
+}
+
+.spendableHint {
+  color: var(--text-tertiary);
+  font-size: 0.8em;
+}
+
+.maxBtn {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(158, 182, 255, 0.1);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.successCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(143, 217, 168, 0.28);
+  background: rgba(80, 160, 110, 0.1);
+}
+
+.successTitle {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #8fd9a8;
+}
+
+.successRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.88rem;
+  color: var(--text-tertiary);
+}
+
+.successRow strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+}
+
+.successLink {
+  justify-self: start;
+  margin-top: 2px;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.successLink:hover {
+  color: var(--accent-strong);
+}
+
+.successState {
+  color: #8fd9a8 !important;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.maxBtn:hover:not(:disabled) {
+  background: rgba(158, 182, 255, 0.16);
+}
+
+.maxBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.impactElevated {
+  color: var(--warning);
+}
+
+.impactHigh {
+  color: #e0a0a0;
+}
+
+.riskNote {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  line-height: 1.35;
+}
+
+.riskStrong {
+  color: var(--warning);
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+}
+
+.secondaryAction {
+  justify-self: end;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.secondaryAction:hover:not(:disabled) {
+  color: var(--text-secondary);
+}

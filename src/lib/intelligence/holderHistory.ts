@@ -4,6 +4,10 @@
  * localStorage is NOT used.
  */
 
+import {
+  normalizeLiveHolderGrowth,
+  type LiveHolderGrowthSummary,
+} from "@/lib/discovery/liveHolderGrowth";
 import type {
   HolderGrowthFacts,
   HolderIntelV2Facts,
@@ -279,6 +283,7 @@ export async function postHolderObservation(
  * Fire-and-forget Live enrichment → history write.
  * Isolates KV/history failures from discovery enrichment success.
  * Never retries; server 5m gate is the dedupe source of truth.
+ * Optional onSettled receives normalized Live growth from the SAME POST body.
  */
 export function persistHolderObservation(
   mint: string,
@@ -290,10 +295,28 @@ export function persistHolderObservation(
     liquidityUsd?: number | null;
     marketCapUsd?: number | null;
   },
+  onSettled?: (result: {
+    ok: boolean;
+    persisted: boolean;
+    growth: LiveHolderGrowthSummary | null;
+  }) => void,
 ): void {
-  void postHolderObservation(mint, current).catch(() => {
-    /* history write must not affect Live enrichment */
-  });
+  void postHolderObservation(mint, current)
+    .then((res) => {
+      if (!onSettled) return;
+      if (!res?.ok) {
+        onSettled({ ok: false, persisted: false, growth: null });
+        return;
+      }
+      onSettled({
+        ok: true,
+        persisted: res.persisted,
+        growth: normalizeLiveHolderGrowth(res.intel),
+      });
+    })
+    .catch(() => {
+      onSettled?.({ ok: false, persisted: false, growth: null });
+    });
 }
 
 /** Optional read-only history fetch (no write). */

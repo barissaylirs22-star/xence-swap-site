@@ -1,6 +1,7 @@
 import type { RiskLevel } from "@/lib/intelligence/types";
 import type { TokenAsset } from "@/lib/tokens/types";
 import { computeLightweightAxiomScore } from "./lightweightScore";
+import type { LiveHolderGrowthSummary } from "./liveHolderGrowth";
 
 export type DiscoveryFilterId =
   | "trending"
@@ -17,6 +18,11 @@ export interface DiscoveryEnrichment {
   top10HolderPct: number | null;
   riskLevel: RiskLevel | null;
   status: "idle" | "loading" | "ready" | "unavailable";
+  /**
+   * Compact growth from the same holder-intel POST (may arrive async).
+   * null = unavailable / building / POST not finished or failed.
+   */
+  holderGrowth: LiveHolderGrowthSummary | null;
 }
 
 export const DISCOVERY_FILTERS: Array<{

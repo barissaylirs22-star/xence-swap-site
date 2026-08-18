@@ -100,6 +100,13 @@ export {
 } from "./holderHistory";
 
 export {
+  isLiveHolderGrowthSignificant,
+  normalizeLiveHolderGrowth,
+} from "@/lib/discovery/liveHolderGrowth";
+
+export type { LiveHolderGrowthSummary } from "@/lib/discovery/liveHolderGrowth";
+
+export {
   WHALE_SUPPLY_MAJOR_PCT,
   WHALE_SUPPLY_SIGNIFICANT_PCT,
   WHALE_USD_DUST_FLOOR,

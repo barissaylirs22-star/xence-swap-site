@@ -17,11 +17,22 @@ function enrichCacheKey(mint: string): string {
   return `discovery:enrich:v1:${mint}`;
 }
 
+function withGrowthField(
+  entry: Omit<DiscoveryEnrichment, "holderGrowth"> & {
+    holderGrowth?: DiscoveryEnrichment["holderGrowth"];
+  },
+): DiscoveryEnrichment {
+  return {
+    ...entry,
+    holderGrowth: entry.holderGrowth ?? null,
+  };
+}
+
 /**
  * Progressive holder/risk enrichment for visible discovery rows.
  * Uses full concentration+census but with concurrency 1 and a session cap.
- * Successful real snapshots are also written to /api/holder-intel (fire-and-forget,
- * zero extra Helius) so KV accumulates history from Live enrichment.
+ * Successful real snapshots POST once to /api/holder-intel (zero extra Helius);
+ * intel.growth from that SAME response is captured into enrichment state (no UI yet).
  */
 export function useDiscoveryEnrichment(
   tokens: TokenAsset[],
@@ -49,7 +60,7 @@ export function useDiscoveryEnrichment(
         if (next.has(token.mint) || doneRef.current.has(token.mint)) continue;
         const cached = getCached<DiscoveryEnrichment>(enrichCacheKey(token.mint));
         if (cached) {
-          next.set(token.mint, cached);
+          next.set(token.mint, withGrowthField(cached));
           doneRef.current.add(token.mint);
         }
       }
@@ -82,13 +93,17 @@ export function useDiscoveryEnrichment(
 
         setEnrichment((prev) => {
           const next = new Map(prev);
-          next.set(mint, {
-            holderCount: null,
-            topHolderPct: null,
-            top10HolderPct: null,
-            riskLevel: null,
-            status: "loading",
-          });
+          next.set(
+            mint,
+            withGrowthField({
+              holderCount: null,
+              topHolderPct: null,
+              top10HolderPct: null,
+              riskLevel: null,
+              status: "loading",
+              holderGrowth: null,
+            }),
+          );
           return next;
         });
 
@@ -115,7 +130,7 @@ export function useDiscoveryEnrichment(
               top10HolderPct: concentrationOk ? snap.top10HolderPct : null,
             });
 
-            const entry: DiscoveryEnrichment = {
+            const entry: DiscoveryEnrichment = withGrowthField({
               holderCount:
                 snap.holderCount != null && Number.isFinite(snap.holderCount)
                   ? snap.holderCount
@@ -127,19 +142,41 @@ export function useDiscoveryEnrichment(
                 concentrationOk || snap.holderCount != null
                   ? "ready"
                   : "unavailable",
-            };
+              holderGrowth: null,
+            });
 
-            // Reuse paid census: write history without extra Helius.
-            // Fire-and-forget; failures must not affect Live enrichment.
+            // Exactly one holder-intel POST per fresh successful enrichment.
+            // Capture intel.growth from the SAME response; never block / fail enrichment.
             if (entry.status === "ready") {
-              persistHolderObservation(mint, {
-                holderCount: entry.holderCount,
-                topHolderPct: entry.topHolderPct,
-                top10HolderPct: entry.top10HolderPct,
-                priceUsd: token.priceUsd ?? null,
-                liquidityUsd: token.liquidityUsd ?? null,
-                marketCapUsd: token.marketCapUsd ?? token.fdvUsd ?? null,
-              });
+              persistHolderObservation(
+                mint,
+                {
+                  holderCount: entry.holderCount,
+                  topHolderPct: entry.topHolderPct,
+                  top10HolderPct: entry.top10HolderPct,
+                  priceUsd: token.priceUsd ?? null,
+                  liquidityUsd: token.liquidityUsd ?? null,
+                  marketCapUsd: token.marketCapUsd ?? token.fdvUsd ?? null,
+                },
+                (result) => {
+                  if (!result.growth) return;
+                  const merge = (cur: DiscoveryEnrichment | undefined) => {
+                    if (!cur || cur.status !== "ready") return null;
+                    return withGrowthField({
+                      ...cur,
+                      holderGrowth: result.growth,
+                    });
+                  };
+                  setEnrichment((prev) => {
+                    const updated = merge(prev.get(mint));
+                    if (!updated) return prev;
+                    const next = new Map(prev);
+                    next.set(mint, updated);
+                    setCached(enrichCacheKey(mint), updated, ENRICH_TTL_MS);
+                    return next;
+                  });
+                },
+              );
             }
 
             if (cancelled || controller.signal.aborted) return;
@@ -152,7 +189,15 @@ export function useDiscoveryEnrichment(
 
             setEnrichment((prev) => {
               const next = new Map(prev);
-              next.set(mint, entry);
+              // Keep growth if a racing POST already merged it.
+              const existing = prev.get(mint);
+              next.set(
+                mint,
+                withGrowthField({
+                  ...entry,
+                  holderGrowth: existing?.holderGrowth ?? entry.holderGrowth,
+                }),
+              );
               return next;
             });
           } catch (err) {
@@ -163,7 +208,7 @@ export function useDiscoveryEnrichment(
               doneRef.current.delete(mint);
               return;
             }
-            const fail: DiscoveryEnrichment = {
+            const fail = withGrowthField({
               holderCount: null,
               topHolderPct: null,
               top10HolderPct: null,
@@ -173,7 +218,8 @@ export function useDiscoveryEnrichment(
                 top10HolderPct: null,
               }).level,
               status: "unavailable",
-            };
+              holderGrowth: null,
+            });
             setCached(enrichCacheKey(mint), fail, FAIL_TTL_MS);
             setEnrichment((prev) => {
               const next = new Map(prev);

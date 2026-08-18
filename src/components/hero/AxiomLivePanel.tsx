@@ -128,7 +128,11 @@ function axmBadgeClass(score: LightweightAxiomScore | null | undefined): string 
   return styles.axmRisk;
 }
 
-export function AxiomLivePanel() {
+export function AxiomLivePanel({
+  layout = "embedded",
+}: {
+  layout?: "embedded" | "primary";
+}) {
   const { tabs, loading } = useAxiomLive();
   const pump = usePumpFunStream();
   const { selectLiveReceiveToken } = useSwapIntent();
@@ -137,6 +141,7 @@ export function AxiomLivePanel() {
   const [visibleCount, setVisibleCount] = useState(DISCOVERY_PAGE_SIZE);
   const now = useClock(true);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const isPrimary = layout === "primary";
 
   const universe = useMemo(() => {
     const trending = tabs.find((t) => t.id === "trending");
@@ -203,10 +208,19 @@ export function AxiomLivePanel() {
         : styles.live;
 
   return (
-    <aside className={styles.panel} aria-label={AXIOM_LIVE.title}>
+    <div
+      className={[styles.panel, isPrimary ? styles.panelPrimary : ""]
+        .filter(Boolean)
+        .join(" ")}
+      aria-label={AXIOM_LIVE.title}
+    >
       <div className={styles.head}>
         <div className={styles.titleRow}>
-          <span className={styles.title}>{AXIOM_LIVE.title}</span>
+          {isPrimary ? (
+            <span className={styles.title}>Discovery</span>
+          ) : (
+            <span className={styles.title}>{AXIOM_LIVE.title}</span>
+          )}
           <span className={statusClass}>
             <span className={styles.liveDot} aria-hidden />
             {statusLabel}
@@ -238,6 +252,23 @@ export function AxiomLivePanel() {
           </button>
         ))}
       </div>
+
+      {isPrimary ? (
+        <div className={styles.colHead} aria-hidden>
+          <span className={styles.colHeadSpacer} />
+          <span>Token</span>
+          <span>Why moving</span>
+          <span>Holder</span>
+          <span>5m</span>
+          <span>1h</span>
+          <span>Liq</span>
+          <span>24h vol</span>
+          <span>MC</span>
+          <span>Hld</span>
+          <span>AXM</span>
+          <span>Price</span>
+        </div>
+      ) : null}
 
       <div
         className={styles.list}
@@ -300,7 +331,7 @@ export function AxiomLivePanel() {
           onTrade={tradeFromDetail}
         />
       </TokenDetailErrorBoundary>
-    </aside>
+    </div>
   );
 }
 
@@ -417,111 +448,120 @@ function LiveTokenRow({
       data-discovery-enrich="1"
     >
       <TokenIcon token={token} />
-      <div className={styles.body}>
-        <div className={styles.top}>
-          <div className={styles.meta}>
-            <div className={styles.symbolRow}>
-              <span className={styles.symbol}>{token.symbol}</span>
-              {riskLevel ? (
-                <span className={riskBadgeClass(riskLevel)}>{riskLevel}</span>
-              ) : null}
-              {showUnverified ? (
-                <span className={styles.badgeWarn}>{SWAP_COPY.unverified}</span>
-              ) : null}
-            </div>
-            <div className={styles.name}>{token.name}</div>
-            {movement ? (
-              <div className={styles.moveReason} title="Observable market signal">
-                {movement.label}
-              </div>
-            ) : null}
-            {growthLabel && growthSummary ? (
-              <div
-                className={[
-                  styles.hldGrowth,
-                  growthUp
-                    ? styles.hldGrowthUp
-                    : growthDown
-                      ? styles.hldGrowthDown
-                      : styles.hldGrowthFlat,
-                ].join(" ")}
-                title={`Holders ${growthSummary.fromCount.toLocaleString("en-US")} → ${growthSummary.toCount.toLocaleString("en-US")}`}
-              >
-                {growthLabel}
-              </div>
-            ) : null}
-            {concentration ? (
-              <div
-                className={[
-                  styles.concCue,
-                  concentration.severity === "high"
-                    ? styles.concHigh
-                    : styles.concMed,
-                ].join(" ")}
-                title={
-                  concentration.id === "top_holder"
-                    ? `Largest holder share ${concentration.pct.toFixed(1)}%`
-                    : `Top-10 holder share ${concentration.pct.toFixed(1)}%`
-                }
-              >
-                {concentration.label}
-              </div>
-            ) : null}
-            <div className={styles.mintLine}>
-              {shortMint(token.mint)}
-              {creator ? (
-                <span>
-                  {" "}
-                  · {AXIOM_LIVE.creator} {shortKey(creator)}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          <div className={styles.priceCol}>
-            {axmScore ? (
-              <span
-                className={[styles.axmBadge, axmBadgeClass(axmScore)].join(" ")}
-                title={`Lightweight Axiom Score · ${axmScore.label} · preview only`}
-              >
-                AXM {axmScore.score}
-              </span>
-            ) : null}
-            <span className={styles.price}>{dash(price)}</span>
-            <span className={styles.age}>{dash(age)}</span>
-          </div>
+      <div className={styles.identity}>
+        <div className={styles.symbolRow}>
+          <span className={styles.symbol}>{token.symbol}</span>
+          {riskLevel ? (
+            <span className={riskBadgeClass(riskLevel)}>{riskLevel}</span>
+          ) : null}
+          {showUnverified ? (
+            <span className={styles.badgeWarn}>{SWAP_COPY.unverified}</span>
+          ) : null}
         </div>
+        <div className={styles.name}>{token.name}</div>
+        <div className={styles.mintLine}>
+          {shortMint(token.mint)}
+          {creator ? (
+            <span>
+              {" "}
+              · {AXIOM_LIVE.creator} {shortKey(creator)}
+            </span>
+          ) : null}
+        </div>
+      </div>
 
-        <div className={styles.metrics} aria-label="Market metrics">
-          <Metric
-            label="5m"
-            value={dash(ch5)}
-            valueClass={changeClass(token.priceChange5mPct)}
+      <div className={styles.whyCol}>
+        {movement ? (
+          <div className={styles.moveReason} title="Observable market signal">
+            {movement.label}
+          </div>
+        ) : (
+          <span className={styles.signalEmpty}>—</span>
+        )}
+      </div>
+
+      <div className={styles.holderCol}>
+        {growthLabel && growthSummary ? (
+          <div
+            className={[
+              styles.hldGrowth,
+              growthUp
+                ? styles.hldGrowthUp
+                : growthDown
+                  ? styles.hldGrowthDown
+                  : styles.hldGrowthFlat,
+            ].join(" ")}
+            title={`Holders ${growthSummary.fromCount.toLocaleString("en-US")} → ${growthSummary.toCount.toLocaleString("en-US")}`}
+          >
+            {growthLabel}
+          </div>
+        ) : null}
+        {concentration ? (
+          <div
+            className={[
+              styles.concCue,
+              concentration.severity === "high"
+                ? styles.concHigh
+                : styles.concMed,
+            ].join(" ")}
             title={
-              token.priceChange5mPct != null &&
-              Number.isFinite(token.priceChange5mPct)
-                ? `${token.priceChange5mPct > 0 ? "+" : ""}${token.priceChange5mPct}%`
-                : undefined
+              concentration.id === "top_holder"
+                ? `Largest holder share ${concentration.pct.toFixed(1)}%`
+                : `Top-10 holder share ${concentration.pct.toFixed(1)}%`
             }
-          />
-          <Metric
-            label="1h"
-            value={dash(ch1h)}
-            valueClass={changeClass(token.priceChange1hPct)}
-            title={
-              token.priceChange1hPct != null &&
-              Number.isFinite(token.priceChange1hPct)
-                ? `${token.priceChange1hPct > 0 ? "+" : ""}${token.priceChange1hPct}%`
-                : undefined
-            }
-          />
-          <Metric label="LIQ" value={dash(liq)} />
-          <Metric label="24H VOL" value={dash(vol)} />
-          <Metric
-            label={cap?.label ?? "MC"}
-            value={cap ? cap.value : "—"}
-          />
-          <Metric label="HLD" value={holders} />
-        </div>
+          >
+            {concentration.label}
+          </div>
+        ) : null}
+        {!growthLabel && !concentration ? (
+          <span className={styles.signalEmpty}>—</span>
+        ) : null}
+      </div>
+
+      <div className={styles.metrics} aria-label="Market metrics">
+        <Metric
+          label="5m"
+          value={dash(ch5)}
+          valueClass={changeClass(token.priceChange5mPct)}
+          title={
+            token.priceChange5mPct != null &&
+            Number.isFinite(token.priceChange5mPct)
+              ? `${token.priceChange5mPct > 0 ? "+" : ""}${token.priceChange5mPct}%`
+              : undefined
+          }
+        />
+        <Metric
+          label="1h"
+          value={dash(ch1h)}
+          valueClass={changeClass(token.priceChange1hPct)}
+          title={
+            token.priceChange1hPct != null &&
+            Number.isFinite(token.priceChange1hPct)
+              ? `${token.priceChange1hPct > 0 ? "+" : ""}${token.priceChange1hPct}%`
+              : undefined
+          }
+        />
+        <Metric label="LIQ" value={dash(liq)} />
+        <Metric label="24H VOL" value={dash(vol)} />
+        <Metric label={cap?.label ?? "MC"} value={cap ? cap.value : "—"} />
+        <Metric label="HLD" value={holders} />
+      </div>
+
+      <div className={styles.trail}>
+        {axmScore ? (
+          <span
+            className={[styles.axmBadge, axmBadgeClass(axmScore)].join(" ")}
+            title={`Lightweight Axiom Score · ${axmScore.label} · preview only`}
+          >
+            AXM {axmScore.score}
+          </span>
+        ) : (
+          <span className={[styles.axmBadge, styles.axmMuted].join(" ")}>
+            AXM —
+          </span>
+        )}
+        <span className={styles.price}>{dash(price)}</span>
+        <span className={styles.age}>{dash(age)}</span>
       </div>
     </button>
   );

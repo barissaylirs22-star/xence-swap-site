@@ -1,6 +1,7 @@
 .panel {
   width: 100%;
-  max-width: 320px;
+  max-width: 420px;
+  margin-inline: auto;
   border-radius: 12px;
   border: 1px solid var(--border-default);
   background: #0b1222;
@@ -13,20 +14,23 @@
   max-height: 420px;
 }
 
-/* Desktop only: fill the RIGHT hero zone */
-@media (min-width: 1100px) {
-  .panel {
-    width: 100%;
-    max-width: 100%;
-    height: 480px;
-    max-height: 480px;
-  }
+.panelPrimary {
+  max-width: none;
+  margin-inline: 0;
+  max-height: none;
+  height: auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  border-radius: 14px;
 }
 
 .head {
   padding: 10px 12px 8px;
   border-bottom: 1px solid var(--border-subtle);
   background: #0d1528;
+}
+
+.panelPrimary .head {
+  padding: 12px 16px 10px;
 }
 
 .titleRow {
@@ -124,6 +128,12 @@
   white-space: nowrap;
 }
 
+.panelPrimary .tab {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.66rem;
+}
+
 .tab:hover {
   color: var(--text-secondary);
   background: rgba(158, 182, 255, 0.04);
@@ -136,6 +146,11 @@
   font-weight: 600;
 }
 
+/* Column labels — desktop primary only */
+.colHead {
+  display: none;
+}
+
 .list {
   overflow: auto;
   padding: 6px 0 6px;
@@ -144,6 +159,12 @@
   min-height: 180px;
   scrollbar-width: thin;
   scrollbar-color: rgba(158, 182, 255, 0.28) transparent;
+}
+
+.panelPrimary .list {
+  min-height: 280px;
+  max-height: min(62vh, 560px);
+  padding: 0;
 }
 
 .list::-webkit-scrollbar {
@@ -159,10 +180,16 @@
   border-radius: 999px;
 }
 
+/* ——— Mobile / tablet compact row ——— */
 .row {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon identity trail"
+    "icon why why"
+    "icon holder holder"
+    "icon metrics metrics";
+  gap: 4px 10px;
   align-items: start;
   width: 100%;
   padding: 9px 12px;
@@ -190,6 +217,7 @@
 
 .icon,
 .iconFallback {
+  grid-area: icon;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -204,21 +232,38 @@
   border: 1px solid var(--border-subtle);
 }
 
-.body {
+.identity {
+  grid-area: identity;
   min-width: 0;
-  display: grid;
-  gap: 6px;
 }
 
-.top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: start;
+.whyCol {
+  grid-area: why;
+  min-width: 0;
 }
 
-.meta {
+.holderCol {
+  grid-area: holder;
   min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.trail {
+  grid-area: trail;
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.metrics {
+  grid-area: metrics;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 8px;
+  padding-top: 2px;
 }
 
 .symbolRow {
@@ -245,7 +290,6 @@
 }
 
 .moveReason {
-  margin-top: 2px;
   font-family: var(--font-mono);
   font-size: 0.58rem;
   font-weight: 600;
@@ -260,7 +304,6 @@
 }
 
 .hldGrowth {
-  margin-top: 2px;
   font-family: var(--font-mono);
   font-size: 0.58rem;
   font-weight: 600;
@@ -286,7 +329,6 @@
 }
 
 .concCue {
-  margin-top: 2px;
   font-family: var(--font-mono);
   font-size: 0.58rem;
   font-weight: 600;
@@ -306,6 +348,13 @@
   color: #e08a8a;
 }
 
+.signalEmpty {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+  opacity: 0.55;
+}
+
 .mintLine {
   color: var(--text-tertiary);
   font-family: var(--font-mono);
@@ -316,14 +365,6 @@
   text-overflow: ellipsis;
   opacity: 0.75;
   margin-top: 1px;
-}
-
-.priceCol {
-  display: grid;
-  justify-items: end;
-  gap: 3px;
-  flex-shrink: 0;
-  padding-top: 1px;
 }
 
 .axmBadge {
@@ -469,13 +510,6 @@
   background: rgba(158, 182, 255, 0.05);
 }
 
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px 8px;
-  padding-top: 1px;
-}
-
 .metric {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -522,25 +556,141 @@
   font-size: 0.8rem;
 }
 
-@media (min-width: 1100px) {
-  .metrics {
+/* ——— Tablet: still compact cards, slightly wider ——— */
+@media (min-width: 760px) and (max-width: 1099px) {
+  .panelPrimary {
+    max-width: none;
+  }
+
+  .panelPrimary .row {
+    padding: 10px 14px;
+  }
+
+  .panelPrimary .metrics {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 4px 6px;
   }
 
-  .metric {
+  .panelPrimary .metric {
     grid-template-columns: 1fr;
     gap: 2px;
   }
 
-  .metricValue {
+  .panelPrimary .metricValue {
     text-align: left;
   }
 }
 
-@media (max-width: 1099px) {
-  .panel {
-    max-width: 420px;
-    margin-inline: auto;
+/* ——— Desktop primary: full-width scannable columns ——— */
+@media (min-width: 1100px) {
+  .panelPrimary .colHead {
+    display: grid;
+    grid-template-columns:
+      28px
+      minmax(120px, 1.15fr)
+      minmax(100px, 0.95fr)
+      minmax(88px, 0.85fr)
+      repeat(6, minmax(52px, 0.55fr))
+      auto
+      minmax(72px, auto);
+    gap: 8px 10px;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: #0a1220;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .panelPrimary .colHeadSpacer {
+    width: 28px;
+  }
+
+  .panelPrimary .row {
+    grid-template-columns:
+      28px
+      minmax(120px, 1.15fr)
+      minmax(100px, 0.95fr)
+      minmax(88px, 0.85fr)
+      repeat(6, minmax(52px, 0.55fr))
+      auto
+      minmax(72px, auto);
+    grid-template-areas: none;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 0;
+    padding: 10px 16px;
+    min-height: 56px;
+  }
+
+  .panelPrimary .icon,
+  .panelPrimary .iconFallback {
+    grid-area: auto;
+    width: 28px;
+    height: 28px;
+    margin-top: 0;
+  }
+
+  .panelPrimary .identity,
+  .panelPrimary .whyCol,
+  .panelPrimary .holderCol,
+  .panelPrimary .trail {
+    grid-area: auto;
+  }
+
+  .panelPrimary .metrics {
+    display: contents;
+  }
+
+  .panelPrimary .metric {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    min-width: 0;
+  }
+
+  .panelPrimary .metricLabel {
+    display: none;
+  }
+
+  .panelPrimary .metricValue {
+    text-align: left;
+    font-size: 0.74rem;
+  }
+
+  .panelPrimary .whyCol .signalEmpty,
+  .panelPrimary .holderCol .signalEmpty {
+    display: inline;
+  }
+
+  .panelPrimary .moveReason,
+  .panelPrimary .hldGrowth,
+  .panelPrimary .concCue {
+    font-size: 0.62rem;
+  }
+
+  .panelPrimary .trail {
+    display: contents;
+  }
+
+  .panelPrimary .axmBadge {
+    justify-self: start;
+    align-self: center;
+  }
+
+  .panelPrimary .price {
+    justify-self: end;
+    font-size: 0.9rem;
+  }
+
+  .panelPrimary .age {
+    display: none;
+  }
+
+  .panelPrimary .list {
+    max-height: min(64vh, 580px);
   }
 }

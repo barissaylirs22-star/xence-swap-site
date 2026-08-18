@@ -2,7 +2,7 @@ import { HERO } from "@/content/copy";
 import buttonStyles from "@/components/ui/Button.module.css";
 import { AxiomOrb } from "@/components/visual/AxiomOrb";
 import { ParticleField } from "@/components/visual/ParticleField";
-import { AxiomLivePanel } from "./AxiomLivePanel";
+import { HeroAtmosphere } from "./HeroAtmosphere";
 import styles from "./Hero.module.css";
 
 export function Hero() {
@@ -12,8 +12,14 @@ export function Hero() {
         <ParticleField count={64} />
       </div>
       <div className={styles.grid} aria-hidden />
+      <HeroAtmosphere />
 
       <div className={styles.composition}>
+        <div className={styles.orbLayer}>
+          <div className={styles.orbGlow} aria-hidden />
+          <AxiomOrb size="hero" />
+        </div>
+
         <div className={styles.copy}>
           <div className={styles.badge}>
             <span className={styles.pulse} aria-hidden />
@@ -43,14 +49,6 @@ export function Hero() {
               {HERO.ctaSecondary}
             </a>
           </div>
-        </div>
-
-        <div className={styles.orbLayer}>
-          <AxiomOrb size="hero" />
-        </div>
-
-        <div className={styles.liveLayer}>
-          <AxiomLivePanel />
         </div>
       </div>
 

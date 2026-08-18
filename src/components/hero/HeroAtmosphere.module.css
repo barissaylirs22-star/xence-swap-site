@@ -1,0 +1,227 @@
+.root {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Soft DATA → center → SIGNAL bridge */
+.bridge {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: min(92vw, 980px);
+  height: min(52vw, 420px);
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(
+      ellipse 42% 55% at 50% 50%,
+      rgba(90, 130, 220, 0.11),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 28% 40% at 18% 48%,
+      rgba(120, 160, 255, 0.07),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 28% 40% at 82% 48%,
+      rgba(100, 180, 160, 0.06),
+      transparent 72%
+    );
+  opacity: 0.9;
+}
+
+.panel {
+  position: absolute;
+  top: 50%;
+  width: min(32vw, 300px);
+  height: min(58vh, 400px);
+  transform: translateY(-58%);
+  opacity: 0.12;
+}
+
+.left {
+  left: max(1.5vw, calc(50% - min(50vw, 560px)));
+}
+
+.right {
+  right: max(1.5vw, calc(50% - min(50vw, 560px)));
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.labels {
+  position: absolute;
+  inset: 0;
+}
+
+.label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: clamp(0.52rem, 0.7vw, 0.62rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(170, 195, 255, 0.55);
+  font-weight: 500;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.edges {
+  opacity: 0.85;
+}
+
+.nodes circle {
+  opacity: 0.9;
+}
+
+.pulseA,
+.pulseB,
+.signalDot {
+  fill: rgba(158, 182, 255, 0.12);
+  stroke: rgba(180, 205, 255, 0.28);
+  stroke-width: 0.7;
+}
+
+.wave {
+  fill: none;
+}
+
+.waveSoft {
+  fill: none;
+}
+
+.tick {
+  opacity: 0.8;
+}
+
+/* Tablet: lighter density */
+@media (min-width: 860px) and (max-width: 1099px) {
+  .root {
+    display: block;
+  }
+
+  .panel {
+    width: min(28vw, 220px);
+    height: min(42vh, 300px);
+    opacity: 0.08;
+    transform: translateY(-52%);
+  }
+
+  .left {
+    left: 1vw;
+  }
+
+  .right {
+    right: 1vw;
+  }
+
+  .label {
+    opacity: 0.7;
+  }
+
+  .bridge {
+    opacity: 0.55;
+    width: min(88vw, 720px);
+  }
+}
+
+/* Desktop: full DATA → AXIOM → SIGNAL atmosphere */
+@media (min-width: 1100px) {
+  .root {
+    display: block;
+  }
+
+  .panel {
+    opacity: 0.13;
+  }
+
+  .left {
+    left: max(2vw, calc(50% - min(48vw, 540px)));
+  }
+
+  .right {
+    right: max(2vw, calc(50% - min(48vw, 540px)));
+  }
+
+  .pulseA {
+    animation: nodePulse 5.5s var(--ease-out) infinite;
+  }
+
+  .pulseB {
+    animation: nodePulse 7s var(--ease-out) 1.2s infinite;
+  }
+
+  .signalDot {
+    animation: nodePulse 6s var(--ease-out) 0.6s infinite;
+  }
+
+  .wave {
+    stroke-dasharray: 280;
+    stroke-dashoffset: 0;
+    animation: waveDraw 12s var(--ease-out) infinite alternate;
+  }
+
+  .tick {
+    animation: tickGlow 4.5s var(--ease-out) infinite alternate;
+  }
+}
+
+@media (min-width: 1400px) {
+  .panel {
+    width: min(30vw, 320px);
+    height: min(56vh, 420px);
+    opacity: 0.14;
+  }
+
+  .label {
+    color: rgba(175, 200, 255, 0.58);
+  }
+}
+
+@keyframes nodePulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes waveDraw {
+  0% {
+    stroke-dashoffset: 36;
+    opacity: 0.7;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes tickGlow {
+  0% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulseA,
+  .pulseB,
+  .signalDot,
+  .wave,
+  .tick {
+    animation: none;
+  }
+}

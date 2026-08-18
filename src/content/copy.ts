@@ -8,6 +8,9 @@ export const HERO = {
 
 export const AXIOM_LIVE = {
   title: "AXIOM LIVE",
+  sectionTitle: "Axiom Live",
+  sectionLine:
+    "See what is moving. Understand why. Check the risk before you trade.",
   trending: "Trending",
   new: "New",
   pump: "Pump.fun",

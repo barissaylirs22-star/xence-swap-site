@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { StickyLaunchCta } from "@/components/layout/StickyLaunchCta";
 import { Hero } from "@/components/hero/Hero";
+import { AxiomLiveSection } from "@/components/hero/AxiomLiveSection";
 import { JourneySection } from "@/components/journey/JourneySection";
 import { VisionSlider } from "@/components/vision/VisionSlider";
 import { LaunchSection } from "@/components/launch/LaunchSection";
@@ -20,17 +21,18 @@ export default function App() {
   return (
     <SwapIntentProvider>
       <div className="app-shell" id="top">
-        <a className="skip-link" href="#launch">
-          Skip to launch
+        <a className="skip-link" href="#live">
+          Skip to Axiom Live
         </a>
         <AmbientBackground />
         <Header />
         <main style={{ position: "relative", zIndex: 1 }}>
           <Hero />
+          <AxiomLiveSection />
+          <TradingPreview />
           <JourneySection />
           <VisionSlider />
           <LaunchSection />
-          <TradingPreview />
           <CommunitySection />
         </main>
         <Footer />

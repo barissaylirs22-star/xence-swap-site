@@ -22,6 +22,10 @@ import {
   type LightweightAxiomScore,
 } from "@/lib/discovery/lightweightScore";
 import { deriveConcentrationCue } from "@/lib/discovery/concentrationCue";
+import {
+  formatLiveHolderGrowthLabel,
+  isLiveHolderGrowthSignificant,
+} from "@/lib/discovery/liveHolderGrowth";
 import { deriveMovementReason } from "@/lib/discovery/movementReason";
 import {
   formatCapOrFdv,
@@ -391,6 +395,16 @@ function LiveTokenRow({
   const axmScore = computeLightweightAxiomScore(token, enrichment, now);
   const movement = deriveMovementReason(token, now);
   const concentration = deriveConcentrationCue(enrichment);
+  const growthSummary =
+    enrichment?.holderGrowth &&
+    isLiveHolderGrowthSignificant(enrichment.holderGrowth)
+      ? enrichment.holderGrowth
+      : null;
+  const growthLabel = growthSummary
+    ? formatLiveHolderGrowthLabel(growthSummary)
+    : null;
+  const growthUp = growthSummary != null && growthSummary.absolute > 0;
+  const growthDown = growthSummary != null && growthSummary.absolute < 0;
 
   return (
     <button
@@ -419,6 +433,21 @@ function LiveTokenRow({
             {movement ? (
               <div className={styles.moveReason} title="Observable market signal">
                 {movement.label}
+              </div>
+            ) : null}
+            {growthLabel && growthSummary ? (
+              <div
+                className={[
+                  styles.hldGrowth,
+                  growthUp
+                    ? styles.hldGrowthUp
+                    : growthDown
+                      ? styles.hldGrowthDown
+                      : styles.hldGrowthFlat,
+                ].join(" ")}
+                title={`Holders ${growthSummary.fromCount.toLocaleString("en-US")} → ${growthSummary.toCount.toLocaleString("en-US")}`}
+              >
+                {growthLabel}
               </div>
             ) : null}
             {concentration ? (

@@ -100,6 +100,8 @@ export {
 } from "./holderHistory";
 
 export {
+  formatLiveHolderGrowthElapsed,
+  formatLiveHolderGrowthLabel,
   isLiveHolderGrowthSignificant,
   normalizeLiveHolderGrowth,
 } from "@/lib/discovery/liveHolderGrowth";

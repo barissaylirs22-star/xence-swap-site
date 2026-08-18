@@ -259,6 +259,32 @@
   opacity: 0.92;
 }
 
+.hldGrowth {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.hldGrowthUp {
+  color: #7ddea0;
+}
+
+.hldGrowthDown {
+  color: #e08a8a;
+}
+
+.hldGrowthFlat {
+  color: var(--text-tertiary);
+}
+
 .concCue {
   margin-top: 2px;
   font-family: var(--font-mono);

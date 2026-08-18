@@ -114,3 +114,46 @@ export function isLiveHolderGrowthSignificant(
 
   return abs >= 25 || pct >= 5;
 }
+
+/** Honest elapsed from actualElapsedMs — never pretends exact 1H. */
+export function formatLiveHolderGrowthElapsed(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "0m";
+  const minutes = Math.max(0, Math.floor(ms / 60_000));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const rem = minutes % 60;
+  if (hours < 48) return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
+function formatCompactSignedInt(value: number): string {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(1)}K`;
+  return `${sign}${Math.round(abs)}`;
+}
+
+function formatCompactSignedPct(value: number): string {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M%`;
+  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(1)}K%`;
+  return `${sign}${abs.toFixed(1)}%`;
+}
+
+/**
+ * Compact Live row label. Caller must already gate with isLiveHolderGrowthSignificant.
+ * Example: HLD ▲ +284 · +9.7% · 56m
+ */
+export function formatLiveHolderGrowthLabel(
+  summary: LiveHolderGrowthSummary,
+): string {
+  const arrow =
+    summary.absolute > 0 ? "▲" : summary.absolute < 0 ? "▼" : "·";
+  const absPart = formatCompactSignedInt(summary.absolute);
+  const pctPart = formatCompactSignedPct(summary.percent);
+  const agePart = formatLiveHolderGrowthElapsed(summary.actualElapsedMs);
+  return `HLD ${arrow} ${absPart} · ${pctPart} · ${agePart}`;
+}

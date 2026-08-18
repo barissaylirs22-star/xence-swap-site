@@ -21,6 +21,7 @@ import {
   lightweightBandTone,
   type LightweightAxiomScore,
 } from "@/lib/discovery/lightweightScore";
+import { deriveMovementReason } from "@/lib/discovery/movementReason";
 import {
   formatCapOrFdv,
   formatChangePct,
@@ -387,6 +388,7 @@ function LiveTokenRow({
         : "—";
   const riskLevel = enrichment?.riskLevel ?? null;
   const axmScore = computeLightweightAxiomScore(token, enrichment, now);
+  const movement = deriveMovementReason(token, now);
 
   return (
     <button
@@ -412,6 +414,11 @@ function LiveTokenRow({
               ) : null}
             </div>
             <div className={styles.name}>{token.name}</div>
+            {movement ? (
+              <div className={styles.moveReason} title="Observable market signal">
+                {movement.label}
+              </div>
+            ) : null}
             <div className={styles.mintLine}>
               {shortMint(token.mint)}
               {creator ? (
@@ -448,7 +455,7 @@ function LiveTokenRow({
             valueClass={changeClass(token.priceChange1hPct)}
           />
           <Metric label="LIQ" value={dash(liq)} />
-          <Metric label="VOL" value={dash(vol)} />
+          <Metric label="24H VOL" value={dash(vol)} />
           <Metric
             label={cap?.label ?? "MC"}
             value={cap ? cap.value : "—"}

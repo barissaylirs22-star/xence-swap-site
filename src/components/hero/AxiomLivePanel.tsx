@@ -21,6 +21,7 @@ import {
   lightweightBandTone,
   type LightweightAxiomScore,
 } from "@/lib/discovery/lightweightScore";
+import { deriveConcentrationCue } from "@/lib/discovery/concentrationCue";
 import { deriveMovementReason } from "@/lib/discovery/movementReason";
 import {
   formatCapOrFdv,
@@ -389,6 +390,7 @@ function LiveTokenRow({
   const riskLevel = enrichment?.riskLevel ?? null;
   const axmScore = computeLightweightAxiomScore(token, enrichment, now);
   const movement = deriveMovementReason(token, now);
+  const concentration = deriveConcentrationCue(enrichment);
 
   return (
     <button
@@ -417,6 +419,23 @@ function LiveTokenRow({
             {movement ? (
               <div className={styles.moveReason} title="Observable market signal">
                 {movement.label}
+              </div>
+            ) : null}
+            {concentration ? (
+              <div
+                className={[
+                  styles.concCue,
+                  concentration.severity === "high"
+                    ? styles.concHigh
+                    : styles.concMed,
+                ].join(" ")}
+                title={
+                  concentration.id === "top_holder"
+                    ? `Largest holder share ${concentration.pct.toFixed(1)}%`
+                    : `Top-10 holder share ${concentration.pct.toFixed(1)}%`
+                }
+              >
+                {concentration.label}
               </div>
             ) : null}
             <div className={styles.mintLine}>
@@ -448,11 +467,23 @@ function LiveTokenRow({
             label="5m"
             value={dash(ch5)}
             valueClass={changeClass(token.priceChange5mPct)}
+            title={
+              token.priceChange5mPct != null &&
+              Number.isFinite(token.priceChange5mPct)
+                ? `${token.priceChange5mPct > 0 ? "+" : ""}${token.priceChange5mPct}%`
+                : undefined
+            }
           />
           <Metric
             label="1h"
             value={dash(ch1h)}
             valueClass={changeClass(token.priceChange1hPct)}
+            title={
+              token.priceChange1hPct != null &&
+              Number.isFinite(token.priceChange1hPct)
+                ? `${token.priceChange1hPct > 0 ? "+" : ""}${token.priceChange1hPct}%`
+                : undefined
+            }
           />
           <Metric label="LIQ" value={dash(liq)} />
           <Metric label="24H VOL" value={dash(vol)} />
@@ -471,13 +502,15 @@ function Metric({
   label,
   value,
   valueClass,
+  title,
 }: {
   label: string;
   value: string;
   valueClass?: string;
+  title?: string;
 }) {
   return (
-    <span className={styles.metric}>
+    <span className={styles.metric} title={title}>
       <span className={styles.metricLabel}>{label}</span>
       <span className={[styles.metricValue, valueClass].filter(Boolean).join(" ")}>
         {value}

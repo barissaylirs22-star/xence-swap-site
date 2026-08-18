@@ -142,12 +142,19 @@ export function formatVolumeUsd(value: number | null | undefined): string | null
   return `$${value.toFixed(0)}`;
 }
 
+/**
+ * Compact % change for tight UI cells. Display-only — does not alter the raw value.
+ * Examples: +12.3% · +123.0% · +999.0% · +15.7K% · -2.4M%
+ */
 export function formatChangePct(value: number | null | undefined): string | null {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return null;
   }
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}%`;
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M%`;
+  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(1)}K%`;
+  return `${sign}${abs.toFixed(1)}%`;
 }
 
 /** Compact token price for discovery rows — null when unavailable (never estimate). */

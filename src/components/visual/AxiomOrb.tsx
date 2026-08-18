@@ -18,6 +18,7 @@ export function AxiomOrb({ size = "hero", className }: AxiomOrbProps) {
           : styles.hero;
 
   const imgSize = size === "sm" ? 96 : size === "md" ? 280 : 1024;
+  const isHeroArtwork = size === "hero";
 
   return (
     <div
@@ -54,8 +55,12 @@ export function AxiomOrb({ size = "hero", className }: AxiomOrbProps) {
       <div className={styles.coreWrap}>
         <div className={styles.core}>
           <img
-            src="/assets/axm-mark.png"
-            srcSet="/assets/axm-mark-512.png 512w, /assets/axm-mark.png 1024w"
+            src={isHeroArtwork ? "/assets/ax-hero.png" : "/assets/axm-mark.png"}
+            srcSet={
+              isHeroArtwork
+                ? undefined
+                : "/assets/axm-mark-512.png 512w, /assets/axm-mark.png 1024w"
+            }
             sizes={
               size === "sm"
                 ? "72px"

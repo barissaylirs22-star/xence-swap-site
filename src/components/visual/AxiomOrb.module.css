@@ -129,6 +129,13 @@
   filter: none;
 }
 
+/* Hero-only AX mark: keep symbol uncropped; black plate blends into circular core */
+.hero .core img {
+  object-fit: contain;
+  object-position: center;
+  background: #000;
+}
+
 .shine {
   position: absolute;
   inset: 0;

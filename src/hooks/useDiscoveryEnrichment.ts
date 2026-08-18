@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DiscoveryEnrichment } from "@/lib/discovery/filters";
 import { assessDiscoveryRiskLite } from "@/lib/discovery/riskLite";
+import { persistHolderObservation } from "@/lib/intelligence/holderHistory";
 import { fetchHolderConcentration } from "@/lib/intelligence/holders";
 import { getCached, setCached } from "@/lib/market/cache";
 import type { TokenAsset } from "@/lib/tokens/types";
@@ -19,6 +20,8 @@ function enrichCacheKey(mint: string): string {
 /**
  * Progressive holder/risk enrichment for visible discovery rows.
  * Uses full concentration+census but with concurrency 1 and a session cap.
+ * Successful real snapshots are also written to /api/holder-intel (fire-and-forget,
+ * zero extra Helius) so KV accumulates history from Live enrichment.
  */
 export function useDiscoveryEnrichment(
   tokens: TokenAsset[],
@@ -102,8 +105,6 @@ export function useDiscoveryEnrichment(
               { includeCensus: true },
             );
 
-            if (cancelled || controller.signal.aborted) return;
-
             const concentrationOk =
               snap.status === "ok" &&
               (snap.topHolderPct != null || snap.top10HolderPct != null);
@@ -127,6 +128,21 @@ export function useDiscoveryEnrichment(
                   ? "ready"
                   : "unavailable",
             };
+
+            // Reuse paid census: write history without extra Helius.
+            // Fire-and-forget; failures must not affect Live enrichment.
+            if (entry.status === "ready") {
+              persistHolderObservation(mint, {
+                holderCount: entry.holderCount,
+                topHolderPct: entry.topHolderPct,
+                top10HolderPct: entry.top10HolderPct,
+                priceUsd: token.priceUsd ?? null,
+                liquidityUsd: token.liquidityUsd ?? null,
+                marketCapUsd: token.marketCapUsd ?? token.fdvUsd ?? null,
+              });
+            }
+
+            if (cancelled || controller.signal.aborted) return;
 
             setCached(
               enrichCacheKey(mint),

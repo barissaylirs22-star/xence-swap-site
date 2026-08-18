@@ -95,6 +95,8 @@ export {
   WINDOW_TOLERANCE,
   buildHolderIntelV2,
   fetchHolderIntelHistory,
+  persistHolderObservation,
+  postHolderObservation,
 } from "./holderHistory";
 
 export {

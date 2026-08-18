@@ -188,35 +188,112 @@ export async function buildHolderIntelV2(
   if (!trimmed) return buildingIntel(fallbackCount);
 
   try {
-    const res = await fetch(HOLDER_INTEL_API_PATH, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mint: trimmed,
-        observation: {
-          holderCount: current.holderCount,
-          topHolderPct: current.topHolderPct,
-          top10HolderPct: current.top10HolderPct,
-          priceUsd: current.priceUsd ?? null,
-          liquidityUsd: current.liquidityUsd ?? null,
-          marketCapUsd: current.marketCapUsd ?? null,
-        },
-      }),
-      signal,
-    });
-
-    if (!res.ok) {
+    const res = await postHolderObservation(trimmed, current, signal);
+    if (!res?.ok) {
       return buildingIntel(fallbackCount);
     }
-
-    const json = (await res.json()) as { intel?: unknown };
-    return normalizeIntel(json.intel, fallbackCount);
+    return normalizeIntel(res.intel, fallbackCount);
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw err;
     }
     return buildingIntel(fallbackCount);
   }
+}
+
+function observationUsable(current: {
+  holderCount: number | null;
+  topHolderPct: number | null;
+  top10HolderPct: number | null;
+}): boolean {
+  return (
+    (current.holderCount != null && Number.isFinite(current.holderCount)) ||
+    (current.topHolderPct != null && Number.isFinite(current.topHolderPct)) ||
+    (current.top10HolderPct != null && Number.isFinite(current.top10HolderPct))
+  );
+}
+
+/**
+ * POST one real holder observation to /api/holder-intel (same shape as Token Detail).
+ * Does not call Helius. Server 5-minute gate may return persisted:false.
+ */
+export async function postHolderObservation(
+  mint: string,
+  current: {
+    holderCount: number | null;
+    topHolderPct: number | null;
+    top10HolderPct: number | null;
+    priceUsd?: number | null;
+    liquidityUsd?: number | null;
+    marketCapUsd?: number | null;
+  },
+  signal?: AbortSignal,
+): Promise<{
+  ok: boolean;
+  persisted: boolean;
+  snapshotCount: number | null;
+  intel: unknown;
+} | null> {
+  const trimmed = mint.trim();
+  if (!trimmed || !observationUsable(current)) return null;
+
+  const res = await fetch(HOLDER_INTEL_API_PATH, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mint: trimmed,
+      observation: {
+        holderCount: current.holderCount,
+        topHolderPct: current.topHolderPct,
+        top10HolderPct: current.top10HolderPct,
+        priceUsd: current.priceUsd ?? null,
+        liquidityUsd: current.liquidityUsd ?? null,
+        marketCapUsd: current.marketCapUsd ?? null,
+      },
+    }),
+    signal,
+  });
+
+  if (!res.ok) {
+    return { ok: false, persisted: false, snapshotCount: null, intel: null };
+  }
+
+  const json = (await res.json()) as {
+    intel?: unknown;
+    persisted?: boolean;
+    snapshotCount?: number;
+  };
+
+  return {
+    ok: true,
+    persisted: Boolean(json.persisted),
+    snapshotCount:
+      typeof json.snapshotCount === "number" && Number.isFinite(json.snapshotCount)
+        ? json.snapshotCount
+        : null,
+    intel: json.intel ?? null,
+  };
+}
+
+/**
+ * Fire-and-forget Live enrichment → history write.
+ * Isolates KV/history failures from discovery enrichment success.
+ * Never retries; server 5m gate is the dedupe source of truth.
+ */
+export function persistHolderObservation(
+  mint: string,
+  current: {
+    holderCount: number | null;
+    topHolderPct: number | null;
+    top10HolderPct: number | null;
+    priceUsd?: number | null;
+    liquidityUsd?: number | null;
+    marketCapUsd?: number | null;
+  },
+): void {
+  void postHolderObservation(mint, current).catch(() => {
+    /* history write must not affect Live enrichment */
+  });
 }
 
 /** Optional read-only history fetch (no write). */

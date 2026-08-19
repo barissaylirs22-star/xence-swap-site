@@ -28,6 +28,7 @@ export type {
 export type {
   PositiveSignal,
   PositiveSignalCode,
+  RiskDataConfidence,
   RiskExplanation,
 } from "./explain";
 
@@ -54,6 +55,7 @@ export {
 } from "./axiomScore";
 
 export {
+  assessRiskDataConfidence,
   buildPositiveSignals,
   explainTokenRisk,
   formatRiskSignalMessage,

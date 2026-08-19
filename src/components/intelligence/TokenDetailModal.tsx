@@ -30,8 +30,9 @@ const COPY = {
   security: "Security",
   holders: "Holders",
   risk: "Risk Analysis",
-  positiveSignals: "Positive Signals",
-  riskSignals: "Risk Signals",
+  why: "Why",
+  positive: "Positive",
+  dataConfidence: "Data confidence",
   trade: "Trade Token",
   close: "Close",
   loading: "Loading intelligence…",
@@ -67,10 +68,6 @@ const COPY = {
   available: "Available",
   unavailable: "Unavailable",
   riskUnknown: "Insufficient data",
-  nonePositive: "No confirmed positive signals from available data",
-  noneRisk: "No elevated risk signals from available data",
-  noneRiskUnverifiedHolders:
-    "No elevated risks in available data — holder concentration unverified",
   holdersRpcBlocked: "RPC blocked largest-accounts",
   holdersTooLarge: "Token too large for largest-accounts",
 } as const;
@@ -374,11 +371,25 @@ export function TokenDetailModal({
               <p className={styles.riskSummaryMuted}>{COPY.riskUnknown}</p>
             )}
 
-            <div className={styles.signalBlock}>
-              <h4 className={styles.signalHeading}>{COPY.positiveSignals}</h4>
-              <ul className={styles.signalList}>
-                {explanation?.positiveSignals?.length ? (
-                  explanation.positiveSignals.map((signal) => (
+            {explanation?.riskSignals?.length ? (
+              <div className={styles.signalBlock}>
+                <h4 className={styles.signalHeading}>{COPY.why}</h4>
+                <ul className={styles.signalList}>
+                  {explanation.riskSignals.map((reason) => (
+                    <RiskSignalItem
+                      key={`${reason.code}-${reason.message}`}
+                      reason={reason}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {explanation?.positiveSignals?.length ? (
+              <div className={styles.signalBlock}>
+                <h4 className={styles.signalHeading}>{COPY.positive}</h4>
+                <ul className={styles.signalList}>
+                  {explanation.positiveSignals.map((signal) => (
                     <li
                       key={signal.code}
                       className={[styles.signal, styles.signalPositive].join(
@@ -390,61 +401,33 @@ export function TokenDetailModal({
                       </span>
                       <span>{signal.message}</span>
                     </li>
-                  ))
-                ) : (
-                  <li
-                    className={[styles.signal, styles.signalMuted].join(" ")}
-                  >
-                    <span className={styles.signalMark} aria-hidden>
-                      ·
-                    </span>
-                    <span>{COPY.nonePositive}</span>
-                  </li>
-                )}
-              </ul>
-            </div>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
-            <div className={styles.signalBlock}>
-              <h4 className={styles.signalHeading}>{COPY.riskSignals}</h4>
-              <ul className={styles.signalList}>
-                {explanation?.riskSignals?.length ? (
-                  explanation.riskSignals.map((reason) => (
-                    <RiskSignalItem
-                      key={`${reason.code}-${reason.message}`}
-                      reason={reason}
-                    />
-                  ))
-                ) : riskLevel === "LOW" ? (
-                  <li
-                    className={[styles.signal, styles.signalPositive].join(" ")}
-                  >
-                    <span className={styles.signalMark} aria-hidden>
-                      ✓
-                    </span>
-                    <span>{COPY.noneRisk}</span>
-                  </li>
-                ) : security?.holdersStatus === "unavailable" ||
-                  security?.holdersStatus === "error" ? (
-                  <li
-                    className={[styles.signal, styles.signalMuted].join(" ")}
-                  >
-                    <span className={styles.signalMark} aria-hidden>
-                      ·
-                    </span>
-                    <span>{COPY.noneRiskUnverifiedHolders}</span>
-                  </li>
-                ) : (
-                  <li
-                    className={[styles.signal, styles.signalMuted].join(" ")}
-                  >
-                    <span className={styles.signalMark} aria-hidden>
-                      ·
-                    </span>
-                    <span>{COPY.riskUnknown}</span>
-                  </li>
-                )}
-              </ul>
-            </div>
+            {explanation ? (
+              <div
+                className={styles.riskConfidence}
+                aria-label={`${COPY.dataConfidence}: ${explanation.dataConfidence}`}
+              >
+                <span className={styles.riskConfidenceLabel}>
+                  {COPY.dataConfidence}
+                </span>
+                <span
+                  className={[
+                    styles.riskConfidenceValue,
+                    explanation.dataConfidence === "HIGH"
+                      ? styles.confHigh
+                      : explanation.dataConfidence === "MEDIUM"
+                        ? styles.confMedium
+                        : styles.confLow,
+                  ].join(" ")}
+                >
+                  {explanation.dataConfidence}
+                </span>
+              </div>
+            ) : null}
 
             <p className={styles.disclaimer}>{COPY.disclaimer}</p>
           </section>

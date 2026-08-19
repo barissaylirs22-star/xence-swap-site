@@ -16,10 +16,20 @@ import {
 import {
   RISK_TOP10_MEDIUM_PCT,
   RISK_TOP_HOLDER_MEDIUM_PCT,
+  RISK_VERY_NEW_MS,
 } from "./risk";
 
 /** Liquidity at/above this (when known) → healthy liquidity positive. */
 export const POSITIVE_HEALTHY_LIQUIDITY_USD = 10_000;
+
+/** Meta / gap codes — belong under confidence, not the Why list. */
+const WHY_META_CODES = new Set([
+  "insufficient_data",
+  "holders_data_unavailable",
+  "holders_analysis_pending",
+]);
+
+export type RiskDataConfidence = "HIGH" | "MEDIUM" | "LOW";
 
 export type PositiveSignalCode =
   | "mint_authority_revoked"
@@ -44,11 +54,39 @@ export interface RiskExplanation {
   summary: string;
   positiveSignals: PositiveSignal[];
   riskSignals: RiskReason[];
+  /** Deterministic availability of core inputs — not a second risk score. */
+  dataConfidence: RiskDataConfidence;
+}
+
+/**
+ * Data confidence from whether core Risk inputs are actually present.
+ * Does not raise or lower the Risk level.
+ *
+ * HIGH — authorities + holder concentration + market facts all available
+ * MEDIUM — exactly two of those three
+ * LOW — zero or one of those three
+ */
+export function assessRiskDataConfidence(input: {
+  market: TokenMarketFacts;
+  security: TokenSecurityFacts;
+  isNativeSol?: boolean;
+}): RiskDataConfidence {
+  if (input.isNativeSol) return "HIGH";
+
+  const securityOk = input.security.authoritiesAvailable === true;
+  const holdersOk = input.security.holdersAvailable === true;
+  const marketOk = input.market.available === true;
+  const present = [securityOk, holdersOk, marketOk].filter(Boolean).length;
+
+  if (present >= 3) return "HIGH";
+  if (present === 2) return "MEDIUM";
+  return "LOW";
 }
 
 /**
  * Derive display-only positive signals from known TokenIntelligence fields.
  * Never invents positives for missing data.
+ * Unknown authorities are never shown as revoked.
  */
 export function buildPositiveSignals(input: {
   market: TokenMarketFacts;
@@ -62,14 +100,23 @@ export function buildPositiveSignals(input: {
     input;
   const out: PositiveSignal[] = [];
 
-  if (isNativeSol || security.mintAuthorityActive === false) {
+  const authoritiesKnown =
+    isNativeSol === true || security.authoritiesAvailable === true;
+
+  if (
+    authoritiesKnown &&
+    (isNativeSol || security.mintAuthorityActive === false)
+  ) {
     out.push({
       code: "mint_authority_revoked",
       message: "Mint authority revoked",
     });
   }
 
-  if (isNativeSol || security.freezeAuthorityActive === false) {
+  if (
+    authoritiesKnown &&
+    (isNativeSol || security.freezeAuthorityActive === false)
+  ) {
     out.push({
       code: "freeze_authority_revoked",
       message: "Freeze authority revoked",
@@ -95,6 +142,7 @@ export function buildPositiveSignals(input: {
   }
 
   if (
+    security.holdersAvailable &&
     security.topHolderPct != null &&
     Number.isFinite(security.topHolderPct) &&
     security.topHolderPct < RISK_TOP_HOLDER_MEDIUM_PCT
@@ -106,6 +154,7 @@ export function buildPositiveSignals(input: {
   }
 
   if (
+    security.holdersAvailable &&
     security.top10HolderPct != null &&
     Number.isFinite(security.top10HolderPct) &&
     security.top10HolderPct < RISK_TOP10_MEDIUM_PCT
@@ -116,10 +165,7 @@ export function buildPositiveSignals(input: {
     });
   }
 
-  if (
-    trading.priceImpactPct != null &&
-    trading.priceImpactLevel === "low"
-  ) {
+  if (trading.priceImpactPct != null && trading.priceImpactLevel === "low") {
     out.push({
       code: "low_price_impact",
       message: `Low estimated price impact (${trading.priceImpactPct.toFixed(1)}%)`,
@@ -220,6 +266,19 @@ export function buildPositiveSignals(input: {
   return out;
 }
 
+function formatTokenAgeMessage(ageMs: number): string {
+  if (ageMs < 60 * 60 * 1000) {
+    const mins = Math.max(1, Math.round(ageMs / 60_000));
+    return `Token is only ${mins}m old`;
+  }
+  if (ageMs < RISK_VERY_NEW_MS * 2) {
+    const hours = Math.max(1, Math.round(ageMs / 3_600_000));
+    return `Token is only ${hours}h old`;
+  }
+  const days = Math.max(1, Math.round(ageMs / 86_400_000));
+  return `Token is ${days}d old`;
+}
+
 /**
  * Enrich risk reason messages with known numeric context when available.
  * Does not add new risk codes or change thresholds.
@@ -234,16 +293,23 @@ export function formatRiskSignalMessage(
         return `Very low liquidity ($${Math.round(intel.market.liquidityUsd).toLocaleString()})`;
       }
       return reason.message;
+    case "very_new_token":
+      if (intel.market.ageMs != null && Number.isFinite(intel.market.ageMs)) {
+        return formatTokenAgeMessage(intel.market.ageMs);
+      }
+      return reason.message;
     case "high_holder_concentration":
       if (intel.security.topHolderPct != null) {
-        return `High holder concentration (${intel.security.topHolderPct.toFixed(1)}%)`;
+        return `Largest holder controls ${intel.security.topHolderPct.toFixed(1)}%`;
       }
       return reason.message;
     case "high_top10_concentration":
       if (intel.security.top10HolderPct != null) {
-        return `High top-10 concentration (${intel.security.top10HolderPct.toFixed(1)}%)`;
+        return `Top 10 holders control ${intel.security.top10HolderPct.toFixed(1)}%`;
       }
       return reason.message;
+    case "no_jupiter_route":
+      return "Jupiter route unavailable";
     case "moderate_price_impact":
       if (intel.trading.priceImpactPct != null) {
         return `Moderate estimated price impact (${intel.trading.priceImpactPct.toFixed(1)}%)`;
@@ -286,7 +352,7 @@ export function summarizeRiskAssessment(
     case "LOW":
       return "No major risk indicators detected from the currently available data.";
     case "HIGH":
-      return "Multiple elevated risk indicators were detected. Review the signals below before trading.";
+      return "Multiple elevated risk indicators were detected. Review Why below before trading.";
     case "UNKNOWN":
       if (holdersUnavailable) {
         return "No elevated risks detected in available data, but holder concentration could not be verified.";
@@ -294,8 +360,7 @@ export function summarizeRiskAssessment(
       return "Not enough reliable data is available to determine a risk level.";
     case "MEDIUM": {
       const codes = new Set(reasons.map((r) => r.code));
-      const onlyNew =
-        reasons.length === 1 && codes.has("very_new_token");
+      const onlyNew = reasons.length === 1 && codes.has("very_new_token");
       const controlsOk =
         positives.some((p) => p.code === "mint_authority_revoked") &&
         positives.some((p) => p.code === "freeze_authority_revoked");
@@ -304,7 +369,7 @@ export function summarizeRiskAssessment(
         return "Mostly healthy token controls, but this token is extremely new.";
       }
       if (onlyNew) {
-        return "This token is extremely new. Review the signals below before trading.";
+        return "This token is extremely new. Review Why below before trading.";
       }
       if (
         reasons.length > 0 &&
@@ -317,7 +382,7 @@ export function summarizeRiskAssessment(
       if (holdersUnavailable) {
         return "Some caution signals were detected. Holder concentration could not be verified.";
       }
-      return "Some caution signals were detected. Review the signals below before trading.";
+      return "Some caution signals were detected. Review Why below before trading.";
     }
     default:
       return "Not enough reliable data is available to determine a risk level.";
@@ -325,7 +390,8 @@ export function summarizeRiskAssessment(
 }
 
 /**
- * Full explainable Risk V1.1 view model for Token Detail UI.
+ * Full explainable Risk V2 view model for Token Detail UI.
+ * Why / Positive / Data confidence — no second risk algorithm.
  */
 export function explainTokenRisk(
   intel: TokenIntelligence,
@@ -341,41 +407,30 @@ export function explainTokenRisk(
     whaleActivity: intel.whaleActivity,
   });
 
+  const dataConfidence = assessRiskDataConfidence({
+    market: intel.market,
+    security: intel.security,
+    isNativeSol,
+  });
+
   const riskSignals = intel.risk.reasons.map((reason) => ({
     ...reason,
     message: formatRiskSignalMessage(reason, intel),
   }));
 
-  // Avoid duplicating "insufficient data" when we already have a summary.
-  const filteredRisk =
-    intel.risk.level === "UNKNOWN" &&
-    riskSignals.length === 1 &&
-    (riskSignals[0]?.code === "insufficient_data" ||
-      riskSignals[0]?.code === "holders_data_unavailable" ||
-      riskSignals[0]?.code === "holders_analysis_pending")
-      ? riskSignals
-      : riskSignals.filter(
-          (r, i, arr) =>
-            (r.code !== "insufficient_data" &&
-              r.code !== "holders_data_unavailable") ||
-            arr.length === 1 ||
-            i ===
-              arr.findIndex(
-                (x) =>
-                  x.code === "insufficient_data" ||
-                  x.code === "holders_data_unavailable",
-              ),
-        );
+  // Why = concrete caution signals only (meta gaps → confidence, not Why).
+  const whySignals = riskSignals.filter((r) => !WHY_META_CODES.has(r.code));
 
   return {
     level: intel.risk.level,
     summary: summarizeRiskAssessment(
       intel.risk.level,
-      filteredRisk,
+      whySignals,
       positiveSignals,
       { holdersStatus: intel.security.holdersStatus },
     ),
     positiveSignals,
-    riskSignals: filteredRisk,
+    riskSignals: whySignals,
+    dataConfidence,
   };
 }

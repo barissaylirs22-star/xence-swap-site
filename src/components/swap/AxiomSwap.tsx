@@ -674,7 +674,7 @@ export function AxiomSwap() {
       <div className={styles.actions}>
         <button
           type="button"
-          className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.block}`}
+          className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.block} ${styles.swapCta}`}
           disabled={primaryDisabled}
           onClick={onPrimary}
         >

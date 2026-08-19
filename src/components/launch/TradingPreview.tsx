@@ -26,7 +26,7 @@ export function TradingPreview() {
             <div className={styles.headBrand}>
               <BrandMark size={36} className={styles.headMark} />
               <div>
-                <div className="eyebrow">{TRADING_PREVIEW.label}</div>
+                <div className={styles.eyebrow}>{TRADING_PREVIEW.label}</div>
                 <h2 id="trade-title" className={styles.title}>
                   {TRADING_PREVIEW.title}
                 </h2>

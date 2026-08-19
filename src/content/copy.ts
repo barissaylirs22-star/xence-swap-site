@@ -30,6 +30,24 @@ export const AXIOM_LIVE = {
   creator: "Dev",
 } as const;
 
+export const AXIOM_RADAR = {
+  title: "AXIOM RADAR",
+  sectionTitle: "Axiom Radar",
+  sectionLine:
+    "Important changes across tokens Axiom is observing — not a ranking, not a prediction.",
+  loading: "Scanning observed tokens for notable changes…",
+  empty: "No notable changes in enriched tokens right now",
+  unavailable: "Market data unavailable — Radar is idle",
+  degraded:
+    "Structural holder signals are still building — market-only changes may appear as enrichment arrives",
+  watching: "Watching",
+  enriched: "enriched",
+  of: "of",
+  loaded: "loaded",
+  window: "Window",
+  liveBadge: "LIVE",
+} as const;
+
 export const JOURNEY = [
   { step: "01", title: "Brand", detail: "Live" },
   { step: "02", title: "Site", detail: "Live" },

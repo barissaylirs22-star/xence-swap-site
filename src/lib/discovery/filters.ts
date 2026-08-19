@@ -2,6 +2,7 @@ import type { RiskLevel } from "@/lib/intelligence/types";
 import type { TokenAsset } from "@/lib/tokens/types";
 import { resolveLiveAxiomScore } from "./resolvedAxiomScore";
 import type { LiveHolderGrowthSummary } from "./liveHolderGrowth";
+import type { LiveConcentrationTrendSummary } from "./liveConcentrationTrend";
 import {
   assessEarlySignal,
   earlySignalRank,
@@ -29,6 +30,11 @@ export interface DiscoveryEnrichment {
    * null = unavailable / building / POST not finished or failed.
    */
   holderGrowth: LiveHolderGrowthSummary | null;
+  /**
+   * Compact concentration trend from the same holder-intel POST (Radar + optional Live).
+   * null = unavailable / building / POST not finished or failed.
+   */
+  concentrationTrend: LiveConcentrationTrendSummary | null;
 }
 
 export const DISCOVERY_FILTERS: Array<{

@@ -182,7 +182,7 @@ export function SwapConfirmModal({
           </button>
           <button
             type="button"
-            className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.block}`}
+            className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.block} ${styles.confirmCta}`}
             onClick={onConfirm}
             disabled={confirming || !executionEnabled}
           >

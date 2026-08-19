@@ -47,30 +47,31 @@
 }
 
 .primary {
-  background: linear-gradient(180deg, #f7f9ff 0%, #c8d4ff 100%);
-  color: var(--text-invert);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: linear-gradient(180deg, #f8faff 0%, #c4d0ff 52%, #b8c4f8 100%);
+  color: #0a1020;
+  border: 1px solid rgba(255, 255, 255, 0.38);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.28) inset,
-    0 8px 20px rgba(70, 110, 220, 0.22);
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 8px 22px rgba(90, 130, 240, 0.26);
 }
 
 .primary:hover:not(:disabled) {
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.35) inset,
-    0 10px 24px rgba(90, 130, 240, 0.28);
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 10px 26px rgba(99, 140, 255, 0.34);
 }
 
 .secondary {
-  background: rgba(14, 22, 40, 0.92);
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+  background: rgba(10, 16, 32, 0.94);
+  color: #f1f5ff;
+  border: 1px solid rgba(165, 180, 255, 0.34);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28) inset;
 }
 
 .secondary:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  background: rgba(20, 30, 52, 0.96);
+  border-color: rgba(186, 200, 255, 0.5);
+  background: rgba(18, 28, 52, 0.98);
+  color: #ffffff;
 }
 
 .ghost {

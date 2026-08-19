@@ -15,6 +15,7 @@ export const SOCIAL = {
 
 export const NAV_LINKS = [
   { href: "#live", label: "Live" },
+  { href: "#radar", label: "Radar" },
   { href: "#trade", label: "Trade" },
   { href: "#journey", label: "Journey" },
   { href: "#vision", label: "Signal" },

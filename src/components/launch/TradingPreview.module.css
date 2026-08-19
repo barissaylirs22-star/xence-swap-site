@@ -1,17 +1,39 @@
 .shell {
-  border-radius: 14px;
-  border: 1px solid var(--border-default);
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 255, 0.24);
   overflow: hidden;
-  background: #0b1222;
+  background:
+    radial-gradient(ellipse 80% 50% at 8% 0%, rgba(99, 102, 241, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(34, 211, 238, 0.07), transparent 50%),
+    linear-gradient(165deg, #0d1529 0%, #090f1e 55%, #0a1224 100%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 18px 48px rgba(0, 0, 0, 0.42),
+    0 0 40px rgba(56, 100, 220, 0.08),
+    inset 0 1px 0 rgba(186, 200, 255, 0.08);
+}
+
+.shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 60px rgba(56, 100, 220, 0.04);
+  z-index: 0;
 }
 
 .head {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(148, 163, 255, 0.14);
+  background: linear-gradient(180deg, rgba(18, 28, 52, 0.55) 0%, rgba(10, 16, 32, 0.2) 100%);
 }
 
 .headBrand {
@@ -21,36 +43,77 @@
   min-width: 0;
 }
 
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(0.7rem, 0.82vw, 0.76rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #a78bfa 0%, #60a5fa 55%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .headMark {
   width: 36px;
   height: 36px;
   border-radius: 11px;
-  border: 1px solid var(--border-default);
+  border: 1px solid rgba(148, 163, 255, 0.28);
   object-fit: cover;
   filter: none;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 0 16px rgba(99, 102, 241, 0.2);
 }
 
 .title {
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.12;
+  font-size: clamp(1.28rem, 2.1vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: #f8faff;
 }
 
 .note {
-  color: var(--text-secondary);
-  font-size: 0.98rem;
-  margin-top: 3px;
+  color: rgba(186, 198, 230, 0.78);
+  font-size: 0.94rem;
+  margin-top: 4px;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
 }
 
 .badge {
   flex-shrink: 0;
   padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
+  border: 1px solid rgba(148, 163, 255, 0.28);
+  background: rgba(15, 23, 48, 0.9);
+  color: rgba(186, 198, 230, 0.85);
   font-family: var(--font-mono);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(186, 200, 255, 0.06);
+}
+
+@media (max-width: 520px) {
+  .shell {
+    border-radius: 14px;
+  }
+
+  .head {
+    padding: 14px 14px;
+    align-items: flex-start;
+  }
+
+  .title {
+    font-size: 1.22rem;
+  }
+
+  .note {
+    font-size: 0.88rem;
+  }
 }

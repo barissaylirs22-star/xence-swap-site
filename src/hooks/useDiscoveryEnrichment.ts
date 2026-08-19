@@ -17,14 +17,16 @@ function enrichCacheKey(mint: string): string {
   return `discovery:enrich:v1:${mint}`;
 }
 
-function withGrowthField(
-  entry: Omit<DiscoveryEnrichment, "holderGrowth"> & {
+function withIntelFields(
+  entry: Omit<DiscoveryEnrichment, "holderGrowth" | "concentrationTrend"> & {
     holderGrowth?: DiscoveryEnrichment["holderGrowth"];
+    concentrationTrend?: DiscoveryEnrichment["concentrationTrend"];
   },
 ): DiscoveryEnrichment {
   return {
     ...entry,
     holderGrowth: entry.holderGrowth ?? null,
+    concentrationTrend: entry.concentrationTrend ?? null,
   };
 }
 
@@ -32,7 +34,7 @@ function withGrowthField(
  * Progressive holder/risk enrichment for visible discovery rows.
  * Uses full concentration+census but with concurrency 1 and a session cap.
  * Successful real snapshots POST once to /api/holder-intel (zero extra Helius);
- * intel.growth from that SAME response is captured into enrichment state (no UI yet).
+ * intel.growth + concentration trend from that SAME response feed Live/Radar.
  */
 export function useDiscoveryEnrichment(
   tokens: TokenAsset[],
@@ -60,7 +62,7 @@ export function useDiscoveryEnrichment(
         if (next.has(token.mint) || doneRef.current.has(token.mint)) continue;
         const cached = getCached<DiscoveryEnrichment>(enrichCacheKey(token.mint));
         if (cached) {
-          next.set(token.mint, withGrowthField(cached));
+          next.set(token.mint, withIntelFields(cached));
           doneRef.current.add(token.mint);
         }
       }
@@ -95,7 +97,7 @@ export function useDiscoveryEnrichment(
           const next = new Map(prev);
           next.set(
             mint,
-            withGrowthField({
+            withIntelFields({
               holderCount: null,
               topHolderPct: null,
               top10HolderPct: null,
@@ -130,7 +132,7 @@ export function useDiscoveryEnrichment(
               top10HolderPct: concentrationOk ? snap.top10HolderPct : null,
             });
 
-            const entry: DiscoveryEnrichment = withGrowthField({
+            const entry: DiscoveryEnrichment = withIntelFields({
               holderCount:
                 snap.holderCount != null && Number.isFinite(snap.holderCount)
                   ? snap.holderCount
@@ -146,7 +148,7 @@ export function useDiscoveryEnrichment(
             });
 
             // Exactly one holder-intel POST per fresh successful enrichment.
-            // Capture intel.growth from the SAME response; never block / fail enrichment.
+            // Capture growth + concentration trend from the SAME response.
             if (entry.status === "ready") {
               persistHolderObservation(
                 mint,
@@ -159,12 +161,14 @@ export function useDiscoveryEnrichment(
                   marketCapUsd: token.marketCapUsd ?? token.fdvUsd ?? null,
                 },
                 (result) => {
-                  if (!result.growth) return;
+                  if (!result.growth && !result.concentrationTrend) return;
                   const merge = (cur: DiscoveryEnrichment | undefined) => {
                     if (!cur || cur.status !== "ready") return null;
-                    return withGrowthField({
+                    return withIntelFields({
                       ...cur,
-                      holderGrowth: result.growth,
+                      holderGrowth: result.growth ?? cur.holderGrowth,
+                      concentrationTrend:
+                        result.concentrationTrend ?? cur.concentrationTrend,
                     });
                   };
                   setEnrichment((prev) => {
@@ -189,13 +193,15 @@ export function useDiscoveryEnrichment(
 
             setEnrichment((prev) => {
               const next = new Map(prev);
-              // Keep growth if a racing POST already merged it.
+              // Keep growth/trend if a racing POST already merged them.
               const existing = prev.get(mint);
               next.set(
                 mint,
-                withGrowthField({
+                withIntelFields({
                   ...entry,
                   holderGrowth: existing?.holderGrowth ?? entry.holderGrowth,
+                  concentrationTrend:
+                    existing?.concentrationTrend ?? entry.concentrationTrend,
                 }),
               );
               return next;
@@ -208,7 +214,7 @@ export function useDiscoveryEnrichment(
               doneRef.current.delete(mint);
               return;
             }
-            const fail = withGrowthField({
+            const fail = withIntelFields({
               holderCount: null,
               topHolderPct: null,
               top10HolderPct: null,

@@ -8,6 +8,10 @@ import {
   normalizeLiveHolderGrowth,
   type LiveHolderGrowthSummary,
 } from "@/lib/discovery/liveHolderGrowth";
+import {
+  normalizeLiveConcentrationTrend,
+  type LiveConcentrationTrendSummary,
+} from "@/lib/discovery/liveConcentrationTrend";
 import type {
   HolderGrowthFacts,
   HolderIntelV2Facts,
@@ -316,23 +320,35 @@ export function persistHolderObservation(
     ok: boolean;
     persisted: boolean;
     growth: LiveHolderGrowthSummary | null;
+    concentrationTrend: LiveConcentrationTrendSummary | null;
   }) => void,
 ): void {
   void postHolderObservation(mint, current)
     .then((res) => {
       if (!onSettled) return;
       if (!res?.ok) {
-        onSettled({ ok: false, persisted: false, growth: null });
+        onSettled({
+          ok: false,
+          persisted: false,
+          growth: null,
+          concentrationTrend: null,
+        });
         return;
       }
       onSettled({
         ok: true,
         persisted: res.persisted,
         growth: normalizeLiveHolderGrowth(res.intel),
+        concentrationTrend: normalizeLiveConcentrationTrend(res.intel),
       });
     })
     .catch(() => {
-      onSettled?.({ ok: false, persisted: false, growth: null });
+      onSettled?.({
+        ok: false,
+        persisted: false,
+        growth: null,
+        concentrationTrend: null,
+      });
     });
 }
 

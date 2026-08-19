@@ -12,7 +12,13 @@ export function AxiomLiveSection() {
     >
       <div className="page">
         <header className={styles.intro}>
-          <div className="eyebrow">{AXIOM_LIVE.title}</div>
+          <div className={styles.eyebrowRow}>
+            <p className={styles.brandTitle}>{AXIOM_LIVE.title}</p>
+            <span className={styles.liveBadge}>
+              <span className={styles.liveDot} aria-hidden />
+              {AXIOM_LIVE.statusLive}
+            </span>
+          </div>
           <h2 id="live-title" className={styles.heading}>
             {AXIOM_LIVE.sectionTitle}
           </h2>

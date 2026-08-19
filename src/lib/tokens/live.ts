@@ -1,4 +1,5 @@
 import {
+  DISCOVERY_TARGET,
   fetchDiscoveryUniverse,
   invalidateDexDiscoveryCaches as invalidateDex,
 } from "@/lib/market/dexscreener";
@@ -24,14 +25,9 @@ export function invalidateDexDiscoveryCaches(): void {
   invalidateDex();
 }
 
-/**
- * Load the shared discovery universe for AXIOM LIVE filters.
- * Pump.fun remains a separate realtime stream.
- */
-export async function loadAxiomLiveTabs(
-  signal?: AbortSignal,
-): Promise<AxiomLiveTab[]> {
-  const universe = await fetchDiscoveryUniverse(signal).catch(() => null);
+function tabsFromUniverse(
+  universe: TokenAsset[] | null,
+): AxiomLiveTab[] {
   const tokens: TokenAsset[] = universe ?? [];
   const unavailable = universe === null;
 
@@ -44,4 +40,28 @@ export async function loadAxiomLiveTabs(
     { id: "axm_score", title: "AXM Score", tokens, unavailable },
     { id: "pump", title: "Pump.fun", tokens: [], unavailable: false },
   ];
+}
+
+/**
+ * Load the shared discovery universe for AXIOM LIVE filters.
+ * Pump.fun remains a separate realtime stream.
+ *
+ * `onPartial` receives the same tab shape after each Dex mint-enrich batch so
+ * the panel can show first usable rows before the final ~60-token universe.
+ */
+export async function loadAxiomLiveTabs(
+  signal?: AbortSignal,
+  onPartial?: (tabs: AxiomLiveTab[]) => void,
+): Promise<AxiomLiveTab[]> {
+  const universe = await fetchDiscoveryUniverse(
+    signal,
+    DISCOVERY_TARGET,
+    onPartial
+      ? (tokens) => {
+          onPartial(tabsFromUniverse(tokens));
+        }
+      : undefined,
+  ).catch(() => null);
+
+  return tabsFromUniverse(universe);
 }

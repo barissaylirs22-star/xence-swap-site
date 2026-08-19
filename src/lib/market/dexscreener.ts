@@ -184,6 +184,8 @@ async function loadBestPairsByMint(
 async function enrichWithPairs(
   seeds: Array<{ mint: string; iconUrl?: string | null; forceFresh?: boolean }>,
   signal?: AbortSignal,
+  /** Fired after each mint batch with the accumulated TokenAssets so far. */
+  onBatch?: (accumulated: TokenAsset[]) => void,
 ): Promise<TokenAsset[]> {
   if (seeds.length === 0) return [];
 
@@ -224,6 +226,8 @@ async function enrichWithPairs(
         isFresh,
       });
     }
+
+    if (out.length > 0) onBatch?.(out);
   }
 
   return out;
@@ -360,14 +364,22 @@ async function seedsFromSearch(
 /**
  * Broad Solana discovery universe for AXIOM LIVE (50+ real tokens).
  * Merges DexScreener boosts, latest profiles, and search pairs — no invented tokens.
+ *
+ * When `onPartial` is provided, each completed mint-enrich batch (30) emits the
+ * accumulated universe so LIVE can paint before the final ~60-token set is ready.
+ * Cache is written only for the final complete result (same Dex request count).
  */
 export async function fetchDiscoveryUniverse(
   signal?: AbortSignal,
   limit = DISCOVERY_TARGET,
+  onPartial?: (tokens: TokenAsset[]) => void,
 ): Promise<TokenAsset[] | null> {
   const cacheKey = `dex:discovery-universe:${limit}`;
   const cached = getCached<TokenAsset[]>(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    onPartial?.(cached);
+    return cached;
+  }
 
   const [topBoosts, profiles, searchSol, searchPump, searchRay] =
     await Promise.all([
@@ -408,7 +420,9 @@ export async function fetchDiscoveryUniverse(
   if (seeds.length === 0) return null;
 
   const capped = seeds.slice(0, Math.max(limit, DISCOVERY_TARGET));
-  const tokens = await enrichWithPairs(capped, signal);
+  const tokens = await enrichWithPairs(capped, signal, (partial) => {
+    if (partial.length > 0) onPartial?.(partial);
+  });
   if (tokens.length === 0) return null;
 
   setCached(cacheKey, tokens, CACHE_TTL_MS);

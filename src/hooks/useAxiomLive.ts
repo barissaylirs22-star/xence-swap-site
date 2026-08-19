@@ -29,21 +29,26 @@ export function useAxiomLive() {
     const load = (mode: "initial" | "refresh") => {
       controller.abort();
       controller = new AbortController();
+      const signal = controller.signal;
+
+      const applyForThisLoad = (next: AxiomLiveTab[]) => {
+        if (cancelled || signal.aborted) return;
+        setTabs(next);
+        setLoading(false);
+      };
+
       if (mode === "refresh") {
         invalidateDexDiscoveryCaches();
       } else {
         setLoading(true);
       }
 
-      void loadAxiomLiveTabs(controller.signal)
+      void loadAxiomLiveTabs(signal, applyForThisLoad)
         .then((next) => {
-          if (!cancelled && !controller.signal.aborted) {
-            setTabs(next);
-            setLoading(false);
-          }
+          applyForThisLoad(next);
         })
         .catch(() => {
-          if (!cancelled && !controller.signal.aborted) {
+          if (!cancelled && !signal.aborted) {
             if (mode === "initial") setTabs(EMPTY_TABS);
             setLoading(false);
           }

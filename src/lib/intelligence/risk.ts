@@ -1,4 +1,6 @@
 import type {
+  HolderGrowthDelta,
+  HolderHistoryWindow,
   HolderIntelV2Facts,
   RiskLevel,
   RiskReason,
@@ -10,9 +12,15 @@ import type {
 } from "./types";
 import {
   CONCENTRATION_MATERIAL_PP,
+  CONCENTRATION_SEVERE_PP,
+  CONCENTRATION_SHARP_PP,
   CONCENTRATION_SHORT_RISK_PP,
   HOLDERS_FALLING_ABS,
   HOLDERS_FALLING_PCT,
+  HOLDERS_FALLING_SEVERE_PCT,
+  HOLDERS_FALLING_SIGNIFICANT_PCT,
+  RISK_TREND_MIN_RECORDED_MS,
+  RISK_TREND_MIN_SNAPSHOTS,
 } from "./holderHistory";
 import { WHALE_SUPPLY_MAJOR_PCT } from "./whaleThresholds";
 
@@ -38,6 +46,83 @@ function formatWhaleUsd(n: number): string {
   if (n >= 1_000_000) return `~$${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `~$${(n / 1_000).toFixed(1)}K`;
   return `~$${Math.round(n)}`;
+}
+
+function formatDeclinePct(pct: number): string {
+  const abs = Math.abs(pct);
+  const rounded = Math.round(abs * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function formatPp(pp: number): string {
+  const rounded = Math.round(Math.abs(pp) * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+/**
+ * True when holder history is mature enough for trend risk signals.
+ * Missing / thin history must not raise risk and must not invent "stable".
+ */
+export function isMeaningfulHolderHistory(
+  holderIntel: HolderIntelV2Facts | null | undefined,
+): boolean {
+  if (!holderIntel) return false;
+  if (holderIntel.snapshotCount < RISK_TREND_MIN_SNAPSHOTS) return false;
+  if (holderIntel.growth.building || holderIntel.whale.building) {
+    // Building with no available windows yet is not trend evidence.
+    if (!holderIntel.growth.available && !holderIntel.whale.available) {
+      return false;
+    }
+  }
+  const recorded =
+    holderIntel.recordedMs ??
+    holderIntel.growth.recordedMs ??
+    holderIntel.whale.recordedMs;
+  if (recorded == null || !Number.isFinite(recorded)) return false;
+  if (recorded < RISK_TREND_MIN_RECORDED_MS) return false;
+  return holderIntel.growth.available === true || holderIntel.whale.available === true;
+}
+
+function isFallingDelta(d: HolderGrowthDelta): boolean {
+  if (d.window === "5m") {
+    return (
+      d.absolute <= -HOLDERS_FALLING_ABS && d.percent <= -HOLDERS_FALLING_PCT
+    );
+  }
+  if (d.window === "1h" || d.window === "6h" || d.window === "24h") {
+    return (
+      d.absolute <= -HOLDERS_FALLING_ABS || d.percent <= -HOLDERS_FALLING_PCT
+    );
+  }
+  return false;
+}
+
+/** Prefer 1h/6h; among matches pick the most severe percent decline. */
+function pickFallingDelta(
+  deltas: HolderGrowthDelta[],
+): HolderGrowthDelta | null {
+  const falling = deltas.filter(isFallingDelta);
+  if (!falling.length) return null;
+  const long = falling.filter((d) => d.window === "1h" || d.window === "6h");
+  const day = falling.filter((d) => d.window === "24h");
+  const short = falling.filter((d) => d.window === "5m");
+  const pool = long.length ? long : day.length ? day : short;
+  return pool.reduce((a, b) => (a.percent <= b.percent ? a : b));
+}
+
+function holderDeclineMessage(d: HolderGrowthDelta): string {
+  const pct = formatDeclinePct(d.percent);
+  return `Holder count declined ${pct}% over ${d.window}`;
+}
+
+function largestRisingMessage(pp: number, window: HolderHistoryWindow | null): string {
+  const base = `Largest-holder concentration increased by ${formatPp(pp)}pp`;
+  return window ? `${base} over ${window}` : base;
+}
+
+function top10RisingMessage(pp: number, window: HolderHistoryWindow | null): string {
+  const base = `Top-10 concentration increased by ${formatPp(pp)}pp`;
+  return window ? `${base} over ${window}` : base;
 }
 
 /**
@@ -151,82 +236,125 @@ export function assessTokenRisk(input: {
     }
   }
 
-  // Holder Intelligence V2 — additive warnings from real local history only.
-  // Prefer 1h/6h; 5m alone requires a stronger concentration bar so brief noise
-  // does not dominate the overall risk rating.
+  // Holder Intelligence V2 — trend warnings from real local history only.
+  // Thin history (1–2 snapshots / building / short span) must not raise risk.
   const v2 = input.holderIntel;
   let holdersFalling = false;
   let concentrationRising = false;
+  let declineSignificant = false;
+  let declineSevere = false;
+  let concentrationSharp = false;
+  let concentrationSevere = false;
+  let trendWindowShortOnly = false;
+  let fallingDelta: HolderGrowthDelta | null = null;
 
-  if (v2?.growth.available) {
-    const rapid = v2.growth.deltas.find((d) => {
-      if (d.window !== "1h" && d.window !== "6h" && d.window !== "5m") {
-        return false;
+  if (isMeaningfulHolderHistory(v2) && v2) {
+    if (v2.growth.available) {
+      fallingDelta = pickFallingDelta(v2.growth.deltas);
+      if (fallingDelta) {
+        holdersFalling = true;
+        declineSignificant =
+          fallingDelta.percent <= -HOLDERS_FALLING_SIGNIFICANT_PCT;
+        declineSevere = fallingDelta.percent <= -HOLDERS_FALLING_SEVERE_PCT;
+        trendWindowShortOnly = fallingDelta.window === "5m";
+        reasons.push({
+          code: "holders_falling_rapidly",
+          message: holderDeclineMessage(fallingDelta),
+        });
+        medium = true;
       }
-      // 5m: require both absolute AND percent thresholds (stricter).
-      if (d.window === "5m") {
-        return (
-          d.absolute <= -HOLDERS_FALLING_ABS &&
-          d.percent <= -HOLDERS_FALLING_PCT
-        );
+    }
+
+    if (v2.whale.available) {
+      const pref = v2.whale.preferredWindow;
+      const shortOnly = pref === "5m";
+      if (shortOnly) trendWindowShortOnly = true;
+      const largestBar = shortOnly
+        ? CONCENTRATION_SHORT_RISK_PP
+        : CONCENTRATION_MATERIAL_PP;
+      const top10Bar = shortOnly
+        ? CONCENTRATION_SHORT_RISK_PP
+        : CONCENTRATION_MATERIAL_PP;
+
+      if (
+        v2.whale.largestTrend === "increasing" &&
+        v2.whale.largestDeltaPp != null &&
+        v2.whale.largestDeltaPp >= largestBar
+      ) {
+        concentrationRising = true;
+        if (v2.whale.largestDeltaPp >= CONCENTRATION_SHARP_PP) {
+          concentrationSharp = true;
+        }
+        if (v2.whale.largestDeltaPp >= CONCENTRATION_SEVERE_PP) {
+          concentrationSevere = true;
+        }
+        reasons.push({
+          code: "largest_holder_share_rising",
+          message: largestRisingMessage(v2.whale.largestDeltaPp, pref),
+        });
+        medium = true;
       }
-      return (
-        d.absolute <= -HOLDERS_FALLING_ABS || d.percent <= -HOLDERS_FALLING_PCT
-      );
-    });
-    if (rapid) {
-      holdersFalling = true;
+      if (
+        v2.whale.top10Trend === "increasing" &&
+        v2.whale.top10DeltaPp != null &&
+        v2.whale.top10DeltaPp >= top10Bar
+      ) {
+        concentrationRising = true;
+        if (v2.whale.top10DeltaPp >= CONCENTRATION_SHARP_PP) {
+          concentrationSharp = true;
+        }
+        if (v2.whale.top10DeltaPp >= CONCENTRATION_SEVERE_PP) {
+          concentrationSevere = true;
+        }
+        reasons.push({
+          code: "top10_concentration_rising",
+          message: top10RisingMessage(v2.whale.top10DeltaPp, pref),
+        });
+        medium = true;
+      }
+    }
+
+    if (holdersFalling && concentrationRising) {
       reasons.push({
-        code: "holders_falling_rapidly",
-        message: `Holder count falling rapidly (${rapid.absolute} in ${rapid.window})`,
+        code: "holders_falling_concentration_rising",
+        message:
+          "Holder count declining while ownership concentration rises",
       });
       medium = true;
+
+      // Conservative HIGH: severe deterioration combinations only.
+      // Never escalate to HIGH from 5m-only trend evidence.
+      if (!trendWindowShortOnly) {
+        if (
+          (declineSevere && concentrationRising) ||
+          (declineSignificant && concentrationSharp) ||
+          (declineSevere && concentrationSharp) ||
+          concentrationSevere
+        ) {
+          high = true;
+        }
+      }
     }
-  }
 
-  if (v2?.whale.available) {
-    const pref = v2.whale.preferredWindow;
-    const shortOnly = pref === "5m";
-    const largestBar = shortOnly
-      ? CONCENTRATION_SHORT_RISK_PP
-      : CONCENTRATION_MATERIAL_PP;
-    const top10Bar = shortOnly
-      ? CONCENTRATION_SHORT_RISK_PP
-      : CONCENTRATION_MATERIAL_PP;
-
+    // Elevated snapshot concentration that is still worsening → more concerning.
     if (
-      v2.whale.largestTrend === "increasing" &&
-      v2.whale.largestDeltaPp != null &&
-      v2.whale.largestDeltaPp >= largestBar
+      !trendWindowShortOnly &&
+      concentrationSharp &&
+      security.holdersAvailable
     ) {
-      concentrationRising = true;
-      reasons.push({
-        code: "largest_holder_share_rising",
-        message: `Largest holder share increasing materially (${v2.whale.largestDeltaPp.toFixed(1)}pp${pref ? ` · ${pref}` : ""})`,
-      });
-      medium = true;
+      if (
+        (security.topHolderPct != null &&
+          security.topHolderPct >= RISK_TOP_HOLDER_MEDIUM_PCT &&
+          v2.whale.largestTrend === "increasing" &&
+          (v2.whale.largestDeltaPp ?? 0) >= CONCENTRATION_SHARP_PP) ||
+        (security.top10HolderPct != null &&
+          security.top10HolderPct >= RISK_TOP10_MEDIUM_PCT &&
+          v2.whale.top10Trend === "increasing" &&
+          (v2.whale.top10DeltaPp ?? 0) >= CONCENTRATION_SHARP_PP)
+      ) {
+        high = true;
+      }
     }
-    if (
-      v2.whale.top10Trend === "increasing" &&
-      v2.whale.top10DeltaPp != null &&
-      v2.whale.top10DeltaPp >= top10Bar
-    ) {
-      concentrationRising = true;
-      reasons.push({
-        code: "top10_concentration_rising",
-        message: `Top 10 concentration rising significantly (${v2.whale.top10DeltaPp.toFixed(1)}pp${pref ? ` · ${pref}` : ""})`,
-      });
-      medium = true;
-    }
-  }
-
-  if (holdersFalling && concentrationRising) {
-    reasons.push({
-      code: "holders_falling_concentration_rising",
-      message:
-        "Holder count falling while whale concentration rises",
-    });
-    medium = true;
   }
 
   // Whale Activity — only riskRelevant events (post significance filter).

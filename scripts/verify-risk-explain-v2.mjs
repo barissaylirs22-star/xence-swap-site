@@ -74,6 +74,51 @@ function baseIntel(over = {}) {
   };
 }
 
+/** Mature, stable history — enough for HIGH confidence, no trend warnings. */
+function stableHolderIntel() {
+  const now = Date.now();
+  return {
+    growth: {
+      available: true,
+      building: false,
+      currentCount: 1000,
+      deltas: [
+        {
+          window: "1h",
+          absolute: 5,
+          percent: 0.5,
+          fromAt: now - 3600_000,
+          fromCount: 995,
+          toCount: 1000,
+          line: "1h  +0.5%",
+          detailLine: "1h: 1,000 holders",
+        },
+      ],
+      primaryLine: "1,000 holders",
+      recordedMs: 3600_000,
+      statusLine: null,
+    },
+    whale: {
+      available: true,
+      building: false,
+      largestTrend: "stable",
+      top10Trend: "stable",
+      largestDeltaPp: 0.1,
+      top10DeltaPp: -0.2,
+      comparedAt: now - 3600_000,
+      preferredWindow: "1h",
+      windows: [],
+      signals: [],
+      recordedMs: 3600_000,
+      statusLine: null,
+    },
+    interpretations: [],
+    recordedMs: 3600_000,
+    snapshotCount: 5,
+    lastSnapshotAt: now,
+  };
+}
+
 try {
   const {
     assessRiskDataConfidence,
@@ -121,6 +166,16 @@ try {
       authoritiesAvailable: true,
       holdersAvailable: true,
     },
+    holderIntel: stableHolderIntel(),
+  });
+  const medThinHistory = assessRiskDataConfidence({
+    market: { ...baseIntel().market, available: true },
+    security: {
+      ...baseIntel().security,
+      authoritiesAvailable: true,
+      holdersAvailable: true,
+    },
+    holderIntel: null,
   });
   const med = assessRiskDataConfidence({
     market: { ...baseIntel().market, available: true },
@@ -138,8 +193,15 @@ try {
       holdersAvailable: false,
     },
   });
-  if (high !== "HIGH" || med !== "MEDIUM" || low !== "LOW") {
-    throw new Error(`confidence mismatch ${high}/${med}/${low}`);
+  if (
+    high !== "HIGH" ||
+    medThinHistory !== "MEDIUM" ||
+    med !== "MEDIUM" ||
+    low !== "LOW"
+  ) {
+    throw new Error(
+      `confidence mismatch ${high}/${medThinHistory}/${med}/${low}`,
+    );
   }
 
   // 4) HIGH concentration Why wording
@@ -151,6 +213,7 @@ try {
       topHolderPct: 76.1,
       top10HolderPct: 92,
     },
+    holderIntel: stableHolderIntel(),
     risk: {
       level: "HIGH",
       reasons: [
@@ -230,6 +293,7 @@ try {
         topHolderPct: 12,
         top10HolderPct: 40,
       },
+      holderIntel: stableHolderIntel(),
       risk: {
         level: "MEDIUM",
         reasons: [{ code: "very_new_token", message: "Very new token" }],
@@ -262,6 +326,7 @@ try {
         topHolderPct: 8,
         top10HolderPct: 35,
       },
+      holderIntel: stableHolderIntel(),
       risk: {
         level: "LOW",
         reasons: [],

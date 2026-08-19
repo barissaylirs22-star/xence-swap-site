@@ -36,6 +36,23 @@ export const CONCENTRATION_SHORT_RISK_PP = 1.5;
 export const HOLDERS_FALLING_ABS = 25;
 export const HOLDERS_FALLING_PCT = 5;
 
+/** Risk Trend V2 — significant / severe decline (percent). Mild floor remains HOLDERS_FALLING_PCT. */
+export const HOLDERS_FALLING_SIGNIFICANT_PCT = 10;
+export const HOLDERS_FALLING_SEVERE_PCT = 20;
+
+/** Risk Trend V2 — sharp / severe concentration increase (percentage points). */
+export const CONCENTRATION_SHARP_PP = 10;
+export const CONCENTRATION_SEVERE_PP = 20;
+
+/**
+ * Minimum snapshots before trend evidence may affect Risk.
+ * 1–2 samples are not a mature trend (snapshots are ≥5m apart).
+ */
+export const RISK_TREND_MIN_SNAPSHOTS = 3;
+
+/** Minimum recorded span before trend evidence may affect Risk. */
+export const RISK_TREND_MIN_RECORDED_MS = SNAPSHOT_MIN_INTERVAL_MS;
+
 export const HOLDER_INTEL_API_PATH = "/api/holder-intel";
 
 export interface HolderObservation {

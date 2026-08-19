@@ -14,6 +14,7 @@ import {
   HOLDERS_FALLING_PCT,
 } from "./holderHistory";
 import {
+  isMeaningfulHolderHistory,
   RISK_TOP10_MEDIUM_PCT,
   RISK_TOP_HOLDER_MEDIUM_PCT,
   RISK_VERY_NEW_MS,
@@ -62,14 +63,17 @@ export interface RiskExplanation {
  * Data confidence from whether core Risk inputs are actually present.
  * Does not raise or lower the Risk level.
  *
- * HIGH — authorities + holder concentration + market facts all available
- * MEDIUM — exactly two of those three
+ * HIGH — authorities + holder concentration + market facts all available,
+ *         and when holders are available, meaningful history is present
+ *         (thin/missing history caps at MEDIUM — confidence ≠ risk).
+ * MEDIUM — exactly two of those three, or all three with thin history
  * LOW — zero or one of those three
  */
 export function assessRiskDataConfidence(input: {
   market: TokenMarketFacts;
   security: TokenSecurityFacts;
   isNativeSol?: boolean;
+  holderIntel?: HolderIntelV2Facts | null;
 }): RiskDataConfidence {
   if (input.isNativeSol) return "HIGH";
 
@@ -78,7 +82,13 @@ export function assessRiskDataConfidence(input: {
   const marketOk = input.market.available === true;
   const present = [securityOk, holdersOk, marketOk].filter(Boolean).length;
 
-  if (present >= 3) return "HIGH";
+  if (present >= 3) {
+    // Snapshot holders present but history too thin → not full confidence.
+    if (holdersOk && !isMeaningfulHolderHistory(input.holderIntel)) {
+      return "MEDIUM";
+    }
+    return "HIGH";
+  }
   if (present === 2) return "MEDIUM";
   return "LOW";
 }
@@ -285,7 +295,10 @@ function formatTokenAgeMessage(ageMs: number): string {
  */
 export function formatRiskSignalMessage(
   reason: RiskReason,
-  intel: Pick<TokenIntelligence, "market" | "security" | "trading">,
+  intel: Pick<
+    TokenIntelligence,
+    "market" | "security" | "trading" | "holderIntel"
+  >,
 ): string {
   switch (reason.code) {
     case "very_low_liquidity":
@@ -324,6 +337,12 @@ export function formatRiskSignalMessage(
       if (intel.trading.priceImpactPct != null) {
         return `High estimated price impact (${intel.trading.priceImpactPct.toFixed(1)}%)`;
       }
+      return reason.message;
+    case "holders_falling_rapidly":
+    case "largest_holder_share_rising":
+    case "top10_concentration_rising":
+    case "holders_falling_concentration_rising":
+      // assessTokenRisk already emits accurate windowed trend copy.
       return reason.message;
     default:
       return reason.message;
@@ -411,6 +430,7 @@ export function explainTokenRisk(
     market: intel.market,
     security: intel.security,
     isNativeSol,
+    holderIntel: intel.holderIntel,
   });
 
   const riskSignals = intel.risk.reasons.map((reason) => ({

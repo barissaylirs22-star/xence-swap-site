@@ -1,10 +1,12 @@
 /**
  * Cloudflare Worker — production same-origin APIs on axiom-swap.xyz:
  *   POST /api/solana-holders  — Helius JSON-RPC proxy (secret stays server-side)
+ *   GET|POST /api/solana-rpc — standard Solana JSON-RPC + optional Provider B failover
  *   GET|POST /api/holder-intel — persistent holder history (KV)
  *
  * Bindings (see wrangler.toml):
  *   HELIUS_API_KEY or SOLANA_HOLDERS_RPC_URL  (secrets / vars)
+ *   SOLANA_RPC_FALLBACK_URL (optional Provider B, e.g. Alchemy — never VITE_*)
  *   AXIOM_HOLDER_INTEL  (KV namespace — production holder history)
  *
  * Without AXIOM_HOLDER_INTEL KV, /api/holder-intel returns 503 (holders RPC still works).
@@ -21,6 +23,13 @@ import {
   MAX_MINTS,
 } from "../server/holderIntel/core.mjs";
 import { createHolderIntelHandler } from "../server/holderIntel/api.mjs";
+import {
+  STANDARD_RPC_ALLOWED_METHODS,
+  forwardStandardRpcWithFailover,
+  resolveStandardRpcFallback,
+  resolveStandardRpcPrimary,
+  safeRpcErrorMessage,
+} from "../server/solanaRpcFailover.mjs";
 
 const MAX_BODY_BYTES = 1_048_576; // 1 MiB — whale/history RPC batches
 const RPC_RATE_WINDOW_MS = 60_000;
@@ -289,6 +298,114 @@ async function handleHoldersRpc(request, env) {
   }
 }
 
+async function handleStandardSolanaRpc(request, env) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "content-type",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
+
+  const primaryUrl = resolveStandardRpcPrimary(env);
+  const fallbackUrl = resolveStandardRpcFallback(env);
+
+  if (request.method === "GET") {
+    return Response.json(
+      {
+        ok: true,
+        fallbackConfigured: Boolean(fallbackUrl),
+      },
+      { status: 200, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  if (request.method !== "POST") {
+    return Response.json({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  const clientId = clientIdFromRequest(request);
+  if (!rpcRateLimitOk(clientId)) {
+    return Response.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32029, message: "Too many requests" },
+      },
+      { status: 429 },
+    );
+  }
+
+  try {
+    const body = await readBodyLimited(request);
+    let method = "unknown";
+    try {
+      const parsed = JSON.parse(body || "{}");
+      method = parsed.method || "unknown";
+    } catch {
+      // ignore
+    }
+
+    if (!STANDARD_RPC_ALLOWED_METHODS.has(method)) {
+      return Response.json(
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: {
+            code: -32601,
+            message: `Method not allowed on standard RPC proxy: ${method}`,
+          },
+        },
+        { status: 403 },
+      );
+    }
+
+    const result = await forwardStandardRpcWithFailover({
+      body: body || "{}",
+      primaryUrl,
+      fallbackUrl,
+    });
+
+    if (result.used === "fallback") {
+      console.warn("[solana-rpc-proxy]", {
+        method,
+        used: "fallback",
+        http: result.status,
+      });
+    }
+
+    return new Response(result.text, {
+      status: result.status,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+        "X-Axiom-Rpc-Upstream": result.used,
+        "X-Axiom-Rpc-Fallback-Attempted": result.fallbackAttempted ? "1" : "0",
+      },
+    });
+  } catch (error) {
+    const status = error && error.status === 413 ? 413 : 502;
+    console.warn("[solana-rpc-proxy]", { error: safeRpcErrorMessage(error) });
+    return Response.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: status === 413 ? -32003 : -32002,
+          message:
+            status === 413
+              ? "Request body too large"
+              : "Standard Solana RPC proxy failed",
+        },
+      },
+      { status },
+    );
+  }
+}
+
 async function handleHolderIntel(request, env) {
   if (request.method === "OPTIONS") {
     return new Response(null, {
@@ -354,6 +471,10 @@ export default {
       return handleHoldersRpc(request, env);
     }
 
+    if (path === "/api/solana-rpc") {
+      return handleStandardSolanaRpc(request, env);
+    }
+
     if (path === "/api/holder-intel") {
       return handleHolderIntel(request, env);
     }
@@ -365,6 +486,7 @@ export default {
           ok: true,
           service: "axiom-holders-api",
           holdersRpc: Boolean(upstreamFromEnv(env)),
+          standardRpcFallback: Boolean(resolveStandardRpcFallback(env)),
           holderIntelKv: Boolean(env.AXIOM_HOLDER_INTEL),
         },
         { status: 200, headers: { "Cache-Control": "no-store" } },

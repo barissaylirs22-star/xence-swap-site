@@ -1,7 +1,9 @@
 import { getActiveMint, isLaunchLive } from "@/config/launch";
-import { DEFAULT_SOLANA_RPC } from "@/config/providers";
 import type { OnChainTokenFacts } from "@/types/token";
 import { EMPTY_ONCHAIN } from "@/types/token";
+
+/** Same-origin standard RPC proxy — Provider B stays server-side. */
+const SOLANA_RPC_PROXY = "/api/solana-rpc";
 
 interface RpcResponse<T> {
   result?: T;
@@ -41,13 +43,13 @@ export async function fetchLiveOnChainFacts(
   };
 
   const [supplyRes, accountRes] = await Promise.all([
-    fetch(DEFAULT_SOLANA_RPC, {
+    fetch(SOLANA_RPC_PROXY, {
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(supplyBody),
     }),
-    fetch(DEFAULT_SOLANA_RPC, {
+    fetch(SOLANA_RPC_PROXY, {
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json" },

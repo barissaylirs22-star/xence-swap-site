@@ -1,7 +1,9 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import { DEFAULT_SOLANA_RPC } from "@/config/providers";
 import { looksLikeMintAddress, shortMint } from "./catalog";
 import type { TokenAsset } from "./types";
+
+/** Same-origin standard RPC proxy — Provider B stays server-side. */
+const SOLANA_RPC_PROXY = "/api/solana-rpc";
 
 /** Resolve minimal metadata from chain when discovery APIs have no hit. */
 export async function resolveMintOnChain(
@@ -12,7 +14,7 @@ export async function resolveMintOnChain(
   if (!looksLikeMintAddress(trimmed)) return null;
 
   try {
-    const connection = new Connection(DEFAULT_SOLANA_RPC, {
+    const connection = new Connection(SOLANA_RPC_PROXY, {
       commitment: "confirmed",
       disableRetryOnRateLimit: true,
     });

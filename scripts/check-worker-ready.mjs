@@ -58,6 +58,10 @@ async function main() {
     "solana-holders route must end with * (query-string match)",
   );
   assert(
+    toml.includes("axiom-swap.xyz/api/solana-rpc*"),
+    "solana-rpc route must end with * (query-string match)",
+  );
+  assert(
     toml.includes("axiom-swap.xyz/api/holder-intel*"),
     "holder-intel route must end with * (query-string match)",
   );
@@ -242,6 +246,12 @@ async function main() {
   assert(holdersSrc.includes('"/api/solana-holders"'), "holders relative path");
   assert(historySrc.includes('"/api/holder-intel"'), "holder-intel relative path");
   assert(whaleSrc.includes('"/api/solana-holders"'), "whale uses holders proxy");
+  assert(
+    readFileSync(resolve(root, "src/lib/solana/rpc.ts"), "utf8").includes(
+      '"/api/solana-rpc"',
+    ),
+    "standard RPC proxy relative path",
+  );
   assert(
     !holdersSrc.includes("http://127.0.0.1") &&
       !historySrc.includes("http://localhost") &&

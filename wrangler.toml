@@ -23,6 +23,7 @@ workers_dev = true
 # Still narrow — does not capture `/`, assets, or non-/api frontend routes.
 routes = [
   { pattern = "axiom-swap.xyz/api/solana-holders*", zone_name = "axiom-swap.xyz" },
+  { pattern = "axiom-swap.xyz/api/solana-rpc*", zone_name = "axiom-swap.xyz" },
   { pattern = "axiom-swap.xyz/api/holder-intel*", zone_name = "axiom-swap.xyz" },
   { pattern = "axiom-swap.xyz/api/health*", zone_name = "axiom-swap.xyz" },
 ]
@@ -40,3 +41,7 @@ id = "6ba20b969a044399b00227fca8ec0401"
 #   npx wrangler secret put HELIUS_API_KEY
 # Optional instead of HELIUS_API_KEY:
 #   npx wrangler secret put SOLANA_HOLDERS_RPC_URL
+# Optional standard-RPC Provider B (never VITE_*):
+#   npx wrangler secret put SOLANA_RPC_FALLBACK_URL
+# Optional keyless primary override:
+#   SOLANA_RPC_PRIMARY_URL

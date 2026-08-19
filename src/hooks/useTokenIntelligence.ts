@@ -6,6 +6,7 @@ import {
   withAxiomScore,
   type TokenIntelligence,
 } from "@/lib/intelligence";
+import { rememberFullAxiomScore } from "@/lib/discovery/resolvedAxiomScore";
 import { SOL_MINT } from "@/lib/tokens/catalog";
 import type { TokenAsset } from "@/lib/tokens/types";
 
@@ -53,6 +54,12 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
   tokenRef.current = token;
 
   const mint = token?.mint ?? null;
+
+  // Publish real Full Axiom Score into Live sync cache (no extra network).
+  useEffect(() => {
+    if (!data?.mint || !data.axiomScore) return;
+    rememberFullAxiomScore(data.mint, data.axiomScore);
+  }, [data?.mint, data?.axiomScore, data?.updatedAt]);
 
   useEffect(() => {
     const selected = tokenRef.current;

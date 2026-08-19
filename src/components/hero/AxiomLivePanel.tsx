@@ -1,4 +1,4 @@
-import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { AXIOM_LIVE } from "@/content/copy";
 import { SWAP_COPY } from "@/content/swap";
 import { TokenDetailModal } from "@/components/intelligence/TokenDetailModal";
@@ -17,10 +17,12 @@ import {
   type DiscoveryFilterId,
 } from "@/lib/discovery/filters";
 import {
-  computeLightweightAxiomScore,
+  getFullAxiomScoreCacheVersion,
   lightweightBandTone,
-  type LightweightAxiomScore,
-} from "@/lib/discovery/lightweightScore";
+  resolveLiveAxiomScore,
+  subscribeFullAxiomScoreCache,
+  type ResolvedLiveAxiomScore,
+} from "@/lib/discovery/resolvedAxiomScore";
 import { deriveConcentrationCue } from "@/lib/discovery/concentrationCue";
 import {
   formatLiveHolderGrowthLabel,
@@ -119,7 +121,7 @@ function riskBadgeClass(level: RiskLevel | null | undefined): string {
   return styles.riskUnknown;
 }
 
-function axmBadgeClass(score: LightweightAxiomScore | null | undefined): string {
+function axmBadgeClass(score: ResolvedLiveAxiomScore | null | undefined): string {
   if (!score) return styles.axmMuted;
   const tone = lightweightBandTone(score.band);
   if (tone === "strong") return styles.axmStrong;
@@ -142,6 +144,11 @@ export function AxiomLivePanel({
   const now = useClock(true);
   const listRef = useRef<HTMLDivElement | null>(null);
   const isPrimary = layout === "primary";
+  const fullScoreEpoch = useSyncExternalStore(
+    subscribeFullAxiomScoreCache,
+    getFullAxiomScoreCacheVersion,
+    () => 0,
+  );
 
   const universe = useMemo(() => {
     const trending = tabs.find((t) => t.id === "trending");
@@ -159,6 +166,8 @@ export function AxiomLivePanel({
   );
 
   const filtered = useMemo(() => {
+    // Re-resolve when Token Detail publishes a Full Score for a mint.
+    void fullScoreEpoch;
     if (tab === "pump") return [];
     return applyDiscoveryFilter(
       universe,
@@ -166,7 +175,7 @@ export function AxiomLivePanel({
       enrichment,
       now,
     );
-  }, [universe, tab, enrichment, now]);
+  }, [universe, tab, enrichment, now, fullScoreEpoch]);
 
   const visible = useMemo(
     () => filtered.slice(0, visibleCount),
@@ -423,7 +432,7 @@ function LiveTokenRow({
         ? "…"
         : "—";
   const riskLevel = enrichment?.riskLevel ?? null;
-  const axmScore = computeLightweightAxiomScore(token, enrichment, now);
+  const axmScore = resolveLiveAxiomScore(token, enrichment, now);
   const movement = deriveMovementReason(token, now);
   const concentration = deriveConcentrationCue(enrichment);
   const growthSummary =
@@ -551,7 +560,11 @@ function LiveTokenRow({
         {axmScore ? (
           <span
             className={[styles.axmBadge, axmBadgeClass(axmScore)].join(" ")}
-            title={`Lightweight Axiom Score · ${axmScore.label} · preview only`}
+            title={
+              axmScore.mode === "full"
+                ? `Axiom Score · ${axmScore.label} · full analysis`
+                : `Lightweight Axiom Score · ${axmScore.label} · preview only`
+            }
           >
             AXM {axmScore.score}
           </span>

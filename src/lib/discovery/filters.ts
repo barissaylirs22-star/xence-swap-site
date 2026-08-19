@@ -1,6 +1,6 @@
 import type { RiskLevel } from "@/lib/intelligence/types";
 import type { TokenAsset } from "@/lib/tokens/types";
-import { computeLightweightAxiomScore } from "./lightweightScore";
+import { resolveLiveAxiomScore } from "./resolvedAxiomScore";
 import type { LiveHolderGrowthSummary } from "./liveHolderGrowth";
 
 export type DiscoveryFilterId =
@@ -130,11 +130,9 @@ export function applyDiscoveryFilter(
     case "axm_score":
       return [...list].sort((a, b) => {
         const sa =
-          computeLightweightAxiomScore(a, enrichment.get(a.mint), now)
-            ?.score ?? -1;
+          resolveLiveAxiomScore(a, enrichment.get(a.mint), now)?.score ?? -1;
         const sb =
-          computeLightweightAxiomScore(b, enrichment.get(b.mint), now)
-            ?.score ?? -1;
+          resolveLiveAxiomScore(b, enrichment.get(b.mint), now)?.score ?? -1;
         if (sb !== sa) return sb - sa;
         return (b.liquidityUsd ?? 0) - (a.liquidityUsd ?? 0);
       });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import buttonStyles from "@/components/ui/Button.module.css";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { BrandMark } from "@/components/visual/BrandMark";
@@ -6,7 +6,6 @@ import { useClock } from "@/hooks/useClock";
 import { useTokenIntelligence } from "@/hooks/useTokenIntelligence";
 import {
   explainTokenRisk,
-  type AxiomScoreResult,
   type HolderIntelV2Facts,
   type RiskLevel,
   type RiskReason,
@@ -31,12 +30,6 @@ const COPY = {
   security: "Security",
   holders: "Holders",
   risk: "Risk Analysis",
-  axiomScore: "Axiom Score",
-  axiomScoreWhy: "Why",
-  axiomScoreWarnings: "Warnings",
-  axiomConfidence: "Data Confidence",
-  axiomScoreNote:
-    "Structural quality from available evidence — not a price prediction.",
   positiveSignals: "Positive Signals",
   riskSignals: "Risk Signals",
   trade: "Trade Token",
@@ -98,6 +91,8 @@ export function TokenDetailModal({
   const { data, loading, holdersLoading, whaleLoading, error } =
     useTokenIntelligence(open ? token : null);
   const now = useClock(open);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const mintKey = token?.mint ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -113,6 +108,13 @@ export function TokenDetailModal({
     };
   }, [open, onClose]);
 
+  // Always start Token Detail at the top for each open / mint change.
+  useEffect(() => {
+    if (!open || !mintKey) return;
+    const el = bodyRef.current;
+    if (el) el.scrollTop = 0;
+  }, [open, mintKey]);
+
   const explanation = useMemo(() => {
     if (!data || !token) return null;
     return explainTokenRisk(data, {
@@ -127,7 +129,6 @@ export function TokenDetailModal({
   const security = data?.security;
   const trading = data?.trading;
   const risk = data?.risk;
-  const axiomScore = data?.axiomScore;
   const tradeToken = data?.token ?? token;
   const holderIntel = data?.holderIntel;
   const whaleActivity = data?.whaleActivity;
@@ -195,7 +196,7 @@ export function TokenDetailModal({
           <div className={styles.error}>{error}</div>
         ) : null}
 
-        <div className={styles.body}>
+        <div className={styles.body} ref={bodyRef}>
           <section className={styles.section} aria-label={COPY.market}>
             <h3 className={styles.sectionTitle}>{COPY.market}</h3>
             <div className={styles.grid}>
@@ -357,13 +358,6 @@ export function TokenDetailModal({
           </section>
 
           <section
-            className={`${styles.section} ${styles.axiomScoreSection}`}
-            aria-label={COPY.axiomScore}
-          >
-            <AxiomScoreBlock score={axiomScore} loading={loading && !data} />
-          </section>
-
-          <section
             className={`${styles.section} ${styles.riskSection}`}
             aria-label={COPY.risk}
           >
@@ -475,117 +469,6 @@ export function TokenDetailModal({
         </footer>
       </div>
     </div>
-  );
-}
-
-function AxiomScoreBlock({
-  score,
-  loading,
-}: {
-  score: AxiomScoreResult | null | undefined;
-  loading: boolean;
-}) {
-  if (loading && !score) {
-    return (
-      <>
-        <div className={styles.sectionHead}>
-          <h3 className={styles.sectionTitle}>{COPY.axiomScore}</h3>
-        </div>
-        <p className={styles.riskSummaryMuted}>{COPY.loading}</p>
-      </>
-    );
-  }
-
-  if (!score) {
-    return (
-      <>
-        <div className={styles.sectionHead}>
-          <h3 className={styles.sectionTitle}>{COPY.axiomScore}</h3>
-        </div>
-        <p className={styles.riskSummaryMuted}>{COPY.riskUnknown}</p>
-      </>
-    );
-  }
-
-  const bandClass =
-    score.band === "strong_structure" || score.band === "healthy"
-      ? styles.axiomBandStrong
-      : score.band === "caution"
-        ? styles.axiomBandCaution
-        : styles.axiomBandRisk;
-
-  return (
-    <>
-      <div className={styles.sectionHead}>
-        <h3 className={styles.sectionTitle}>{COPY.axiomScore}</h3>
-        <span
-          className={[
-            styles.axiomConfidence,
-            score.confidence === "HIGH"
-              ? styles.confHigh
-              : score.confidence === "MEDIUM"
-                ? styles.confMedium
-                : styles.confLow,
-          ].join(" ")}
-        >
-          {COPY.axiomConfidence}: {score.confidence}
-        </span>
-      </div>
-
-      <div className={styles.axiomScoreRow}>
-        <div className={styles.axiomScoreValue}>
-          <span className={styles.axiomScoreNum}>{score.score}</span>
-          <span className={styles.axiomScoreMax}>/ 100</span>
-        </div>
-        <span className={[styles.axiomBand, bandClass].join(" ")}>
-          {score.label}
-        </span>
-      </div>
-
-      <p className={styles.axiomNote}>{COPY.axiomScoreNote}</p>
-
-      {score.positives.length ? (
-        <div className={styles.signalBlock}>
-          <h4 className={styles.signalHeading}>{COPY.axiomScoreWhy}</h4>
-          <ul className={styles.signalList}>
-            {score.positives.map((f) => (
-              <li
-                key={f.code}
-                className={[styles.signal, styles.signalPositive].join(" ")}
-              >
-                <span className={styles.signalMark} aria-hidden>
-                  +
-                </span>
-                <span>{f.message}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {score.warnings.length ? (
-        <div className={styles.signalBlock}>
-          <h4 className={styles.signalHeading}>{COPY.axiomScoreWarnings}</h4>
-          <ul className={styles.signalList}>
-            {score.warnings.map((f) => (
-              <li
-                key={f.code}
-                className={[styles.signal, styles.signalWarn].join(" ")}
-              >
-                <span className={styles.signalMark} aria-hidden>
-                  −
-                </span>
-                <span>{f.message}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {score.criticalOverride && score.criticalOverrideReason ? (
-        <p className={styles.axiomOverride}>{score.criticalOverrideReason}</p>
-      ) : null}
-    </>
   );
 }
 

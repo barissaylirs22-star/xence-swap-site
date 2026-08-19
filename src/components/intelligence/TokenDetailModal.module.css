@@ -2,23 +2,30 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: end center;
-  padding: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 12px
+    max(12px, env(safe-area-inset-bottom, 0px));
+  /* Keep sheet fully below the fixed site header */
+  padding-top: max(12px, calc(var(--header-h) + 8px));
   background: rgba(6, 10, 20, 0.72);
   backdrop-filter: blur(6px);
+  /* Scroll only inside .body — keep the sheet pinned below the header */
+  overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 @media (min-width: 720px) {
   .backdrop {
-    place-items: center;
-    padding: 24px;
+    align-items: flex-start;
+    padding: max(24px, calc(var(--header-h) + 12px)) 24px 24px;
   }
 }
 
 .modal {
   width: min(100%, 560px);
-  max-height: min(88vh, 720px);
+  max-height: calc(100dvh - var(--header-h) - 28px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   border-radius: 14px;
@@ -28,6 +35,15 @@
     0 0 0 1px rgba(0, 0, 0, 0.35),
     0 24px 48px rgba(0, 0, 0, 0.45);
   overflow: hidden;
+  flex-shrink: 0;
+}
+
+@media (min-width: 720px) {
+  .modal {
+    /* Center vertically in the remaining space under the header when short */
+    margin-block: auto;
+    max-height: calc(100dvh - var(--header-h) - 36px);
+  }
 }
 
 .header {

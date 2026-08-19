@@ -237,14 +237,6 @@ export function AxiomLivePanel({
           ) : (
             <span className={styles.title}>{AXIOM_LIVE.title}</span>
           )}
-          {tab !== "pump" && universe.length > 0 ? (
-            <div className={styles.countNote}>
-              {filtered.length.toLocaleString("en-US")} tokens
-              {filtered.length < universe.length
-                ? ` · ${universe.length.toLocaleString("en-US")} loaded`
-                : null}
-            </div>
-          ) : null}
           <span className={statusClass}>
             <span className={styles.liveDot} aria-hidden />
             {statusLabel}

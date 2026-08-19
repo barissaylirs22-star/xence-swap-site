@@ -63,15 +63,6 @@
   font-weight: 700;
 }
 
-.countNote {
-  font-family: var(--font-sans);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: rgba(186, 198, 230, 0.78);
-  font-variant-numeric: tabular-nums;
-}
-
 .live,
 .statusReconnect,
 .statusFallback {

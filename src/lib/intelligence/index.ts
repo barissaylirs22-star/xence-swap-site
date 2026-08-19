@@ -131,6 +131,18 @@ export {
   tierThresholds,
 } from "./whaleActivity";
 
+export {
+  deriveWalletSignals,
+  formatWalletSignalUsd,
+  summarizeWalletSignalsForBadge,
+} from "./walletSignals";
+
+export type {
+  WalletSignal,
+  WalletSignalCode,
+  WalletSignalDirection,
+} from "./walletSignals";
+
 export type {
   WhaleActivityEvent,
   WhaleActivityFacts,

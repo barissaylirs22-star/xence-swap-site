@@ -6,10 +6,13 @@ import { useClock } from "@/hooks/useClock";
 import { useTokenIntelligence } from "@/hooks/useTokenIntelligence";
 import {
   explainTokenRisk,
+  deriveWalletSignals,
+  formatWalletSignalUsd,
   type HolderIntelV2Facts,
   type RiskLevel,
   type RiskReason,
   type WhaleActivityFacts,
+  type WalletSignal,
 } from "@/lib/intelligence";
 import { formatLaunchAge } from "@/lib/pump/mapToken";
 import { isAxmToken } from "@/lib/tokens/axm";
@@ -59,7 +62,16 @@ const COPY = {
   whaleNone: "No significant whale activity detected",
   whaleUnavailable: "Whale activity unavailable",
   whaleLoading: "Analyzing whale activity…",
-  smartMoneyNote: "Verified Smart Money: unavailable",
+  walletSignals: "Observed wallet activity",
+  walletSignalsNote:
+    "Observed large-holder activity only — not verified smart money or proven profitability.",
+  observedSwaps: "observed swaps",
+  observedEvents: "observed events",
+  accumulating: "Accumulating",
+  distributing: "Distributing",
+  mixedActivity: "Mixed activity",
+  walletActivity: "Activity",
+  reason: "Reason",
   buildingHistory: "Building history...",
   interpretation: "Notes",
   revoked: "Revoked",
@@ -728,6 +740,8 @@ function WhaleActivityBody({
   loading: boolean;
   facts: WhaleActivityFacts | null | undefined;
 }) {
+  const walletSignals = useMemo(() => deriveWalletSignals(facts), [facts]);
+
   if (loading && (!facts || facts.status === "pending")) {
     return <p className={styles.whaleMuted}>{COPY.whaleLoading}</p>;
   }
@@ -735,7 +749,7 @@ function WhaleActivityBody({
     return (
       <div className={styles.whaleBlock}>
         <p className={styles.whaleMuted}>{COPY.whaleUnavailable}</p>
-        <p className={styles.whaleNote}>{COPY.smartMoneyNote}</p>
+        <p className={styles.whaleNote}>{COPY.walletSignalsNote}</p>
       </div>
     );
   }
@@ -743,20 +757,78 @@ function WhaleActivityBody({
     return (
       <div className={styles.whaleBlock}>
         <p className={styles.whaleMuted}>{COPY.whaleNone}</p>
-        <p className={styles.whaleNote}>{COPY.smartMoneyNote}</p>
+        <p className={styles.whaleNote}>{COPY.walletSignalsNote}</p>
       </div>
     );
   }
   return (
     <div className={styles.whaleBlock}>
+      {walletSignals.length ? (
+        <div className={styles.walletSignalList} aria-label={COPY.walletSignals}>
+          {walletSignals.map((signal) => (
+            <WalletSignalCard key={`${signal.wallet}-${signal.code}`} signal={signal} />
+          ))}
+        </div>
+      ) : null}
       <ul className={styles.whaleList}>
         {facts.events.map((ev) => (
-          <li key={`${ev.signatures.join("|")}-${ev.wallet}-${ev.kind}`} className={styles.whaleItem}>
+          <li
+            key={`${ev.signatures.join("|")}-${ev.wallet}-${ev.kind}`}
+            className={styles.whaleItem}
+          >
             {ev.line}
           </li>
         ))}
       </ul>
-      <p className={styles.whaleNote}>{COPY.smartMoneyNote}</p>
+      <p className={styles.whaleNote}>{COPY.walletSignalsNote}</p>
+    </div>
+  );
+}
+
+function WalletSignalCard({ signal }: { signal: WalletSignal }) {
+  const usd = formatWalletSignalUsd(signal.usdApprox);
+  const directionLabel =
+    signal.direction === "accumulating"
+      ? COPY.accumulating
+      : signal.direction === "distributing"
+        ? COPY.distributing
+        : signal.direction === "mixed"
+          ? COPY.mixedActivity
+          : COPY.walletActivity;
+  const countLabel =
+    signal.swapCount > 0
+      ? `${signal.swapCount} ${COPY.observedSwaps}`
+      : `${signal.eventCount} ${COPY.observedEvents}`;
+
+  return (
+    <div className={styles.walletSignalCard}>
+      <div className={styles.walletSignalHead}>
+        <span
+          className={[
+            styles.walletSignalBadge,
+            signal.direction === "accumulating"
+              ? styles.walletSignalUp
+              : signal.direction === "distributing"
+                ? styles.walletSignalDown
+                : styles.walletSignalNeutral,
+          ].join(" ")}
+        >
+          {signal.label}
+        </span>
+        <span className={styles.walletSignalAddr} title={signal.wallet}>
+          {signal.walletShort}
+        </span>
+      </div>
+      <p className={styles.walletSignalMeta}>
+        {directionLabel}
+        {usd ? ` ${usd}` : ""}
+        {" · "}
+        {countLabel}
+      </p>
+      <p className={styles.walletSignalReason}>
+        <span className={styles.walletSignalReasonLabel}>{COPY.reason}</span>
+        {signal.reason}
+      </p>
     </div>
   );
 }

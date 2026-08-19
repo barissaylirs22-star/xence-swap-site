@@ -517,10 +517,93 @@
 .whaleNote {
   margin: 0;
   font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}
+
+.walletSignalList {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.walletSignalCard {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.walletSignalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.walletSignalBadge {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.45;
+  padding: 0 5px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.walletSignalUp {
+  color: #9ef0c8;
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.28);
+}
+
+.walletSignalDown {
+  color: #f8a8a8;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.26);
+}
+
+.walletSignalNeutral {
+  color: #f6d58a;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.walletSignalAddr {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.walletSignalMeta {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.walletSignalReason {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}
+
+.walletSignalReasonLabel {
+  font-family: var(--font-mono);
   font-size: 0.58rem;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-right: 6px;
   color: var(--text-tertiary);
-  opacity: 0.85;
 }
 
 @media (min-width: 560px) {

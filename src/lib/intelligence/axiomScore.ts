@@ -1,6 +1,7 @@
 /**
- * Axiom Score V2 — explainable 0–100 structural quality score.
- * Not a price prediction. Missing history/whale data → neutral, never fabricated.
+ * Axiom Score V1 — explainable 0–100 structural / tradeability score.
+ * Not a price prediction, safety guarantee, or Risk Analysis duplicate.
+ * Missing history/whale data → neutral, never fabricated.
  */
 
 import type {
@@ -75,10 +76,11 @@ export function classifyAxiomScore(score: number): {
   label: string;
 } {
   if (score >= 85) return { band: "strong_structure", label: "Strong Structure" };
-  if (score >= 70) return { band: "healthy", label: "Healthy" };
+  if (score >= 70) return { band: "healthy", label: "Healthy Structure" };
   if (score >= 50) return { band: "caution", label: "Caution" };
-  if (score >= 30) return { band: "high_risk", label: "High Risk" };
-  return { band: "extreme_risk", label: "Extreme Risk" };
+  // Structural language — not Risk Analysis LOW/MEDIUM/HIGH.
+  if (score >= 30) return { band: "high_risk", label: "Weak Structure" };
+  return { band: "extreme_risk", label: "Fragile Structure" };
 }
 
 /**

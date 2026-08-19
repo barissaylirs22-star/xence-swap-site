@@ -562,8 +562,8 @@ function LiveTokenRow({
             className={[styles.axmBadge, axmBadgeClass(axmScore)].join(" ")}
             title={
               axmScore.mode === "full"
-                ? `Axiom Score · ${axmScore.label} · full analysis`
-                : `Lightweight Axiom Score · ${axmScore.label} · preview only`
+                ? `Axiom Score ${axmScore.score} · ${axmScore.label} · structural tradeability from full analysis — not a safety guarantee or buy/sell signal`
+                : `Axiom Score ${axmScore.score} · ${axmScore.label} · lightweight LIVE preview (incomplete evidence) — not a safety guarantee or buy/sell signal`
             }
           >
             AXM {axmScore.score}

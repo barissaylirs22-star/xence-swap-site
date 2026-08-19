@@ -206,6 +206,12 @@ function applyStructuralPenalties(
 }
 
 /**
+ * Without holder concentration evidence, LIVE preview must not claim
+ * Healthy / Strong Structure (avoids misleading band jumps when enrichment arrives).
+ */
+export const LIGHTWEIGHT_NO_HOLDERS_SCORE_CAP = 69;
+
+/**
  * Compute lightweight LIVE-row score. Memoized by input fingerprint.
  */
 export function computeLightweightAxiomScore(
@@ -235,7 +241,10 @@ export function computeLightweightAxiomScore(
     whaleActivity: null,
   });
 
-  const score = applyStructuralPenalties(engine.score, token);
+  let score = applyStructuralPenalties(engine.score, token);
+  if (!usedHolderEnrichment && score > LIGHTWEIGHT_NO_HOLDERS_SCORE_CAP) {
+    score = LIGHTWEIGHT_NO_HOLDERS_SCORE_CAP;
+  }
   const { band, label } =
     score === engine.score
       ? { band: engine.band, label: engine.label }

@@ -895,30 +895,25 @@ export function computeAxiomScore(input: {
 }
 
 /**
- * Align Risk badge with Axiom Score.
- * Preserves UNKNOWN when the risk engine lacks enough evidence.
+ * Historically overwrote Risk level with Axiom Score mapping.
+ * Risk Analysis V2 and Axiom Score are independent concepts — this is now
+ * a no-op that preserves `assessTokenRisk` output (reasons + level).
+ * `score.mappedRiskLevel` remains available on the score object only.
  */
 export function alignRiskWithAxiomScore(
   risk: TokenRiskAssessment,
   score: AxiomScoreResult,
 ): TokenRiskAssessment {
-  if (risk.level === "UNKNOWN") {
-    return {
-      ...risk,
-      assessedAt: Date.now(),
-    };
-  }
-
+  void score;
   return {
-    level: score.mappedRiskLevel,
-    reasons: risk.reasons,
+    ...risk,
     assessedAt: Date.now(),
   };
 }
 
 /**
- * Shared finalize path for Token Detail (and future lightweight discovery).
- * Computes explainable score + keeps Risk badge consistent with it.
+ * Shared finalize path for Token Detail.
+ * Computes Axiom Score independently; Risk level stays from `assessTokenRisk`.
  */
 export function finalizeRiskAndScore(input: {
   market: TokenMarketFacts;
@@ -938,6 +933,8 @@ export function finalizeRiskAndScore(input: {
     riskReasons: risk.reasons,
   });
 
+  // Keep score metadata honest when Risk itself is UNKNOWN — does not
+  // change Risk.level (already UNKNOWN from assessTokenRisk).
   if (risk.level === "UNKNOWN") {
     return {
       risk,
@@ -946,12 +943,12 @@ export function finalizeRiskAndScore(input: {
   }
 
   return {
-    risk: alignRiskWithAxiomScore(risk, axiomScore),
+    risk,
     axiomScore,
   };
 }
 
-/** Attach score + aligned risk onto an intelligence payload. */
+/** Attach independent Axiom Score + Risk V2 assessment onto an intelligence payload. */
 export function withAxiomScore(
   intel: TokenIntelligence,
   isNativeSol = false,

@@ -2,6 +2,11 @@ import type { RiskLevel } from "@/lib/intelligence/types";
 import type { TokenAsset } from "@/lib/tokens/types";
 import { resolveLiveAxiomScore } from "./resolvedAxiomScore";
 import type { LiveHolderGrowthSummary } from "./liveHolderGrowth";
+import {
+  assessEarlySignal,
+  earlySignalRank,
+  hasEarlySignal,
+} from "./earlySignals";
 
 export type DiscoveryFilterId =
   | "trending"
@@ -10,6 +15,7 @@ export type DiscoveryFilterId =
   | "most_holders"
   | "low_risk"
   | "axm_score"
+  | "early_signals"
   | "pump";
 
 export interface DiscoveryEnrichment {
@@ -35,6 +41,7 @@ export const DISCOVERY_FILTERS: Array<{
   { id: "most_holders", title: "Most Holders" },
   { id: "low_risk", title: "Low Risk" },
   { id: "axm_score", title: "AXM Score" },
+  { id: "early_signals", title: "Early Signals" },
   { id: "pump", title: "Pump.fun" },
 ];
 
@@ -136,6 +143,17 @@ export function applyDiscoveryFilter(
         if (sb !== sa) return sb - sa;
         return (b.liquidityUsd ?? 0) - (a.liquidityUsd ?? 0);
       });
+
+    case "early_signals":
+      return [...list]
+        .filter((t) =>
+          hasEarlySignal(assessEarlySignal(t, enrichment.get(t.mint), now)),
+        )
+        .sort((a, b) => {
+          const sa = assessEarlySignal(a, enrichment.get(a.mint), now);
+          const sb = assessEarlySignal(b, enrichment.get(b.mint), now);
+          return earlySignalRank(sb, b) - earlySignalRank(sa, a);
+        });
 
     case "pump":
       return list;

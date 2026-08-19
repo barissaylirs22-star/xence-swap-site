@@ -11,6 +11,8 @@ const EMPTY_TABS: AxiomLiveTab[] = [
   { id: "high_volume", title: "High Volume", tokens: [], unavailable: true },
   { id: "most_holders", title: "Most Holders", tokens: [], unavailable: true },
   { id: "low_risk", title: "Low Risk", tokens: [], unavailable: true },
+  { id: "axm_score", title: "AXM Score", tokens: [], unavailable: true },
+  { id: "early_signals", title: "Early Signals", tokens: [], unavailable: true },
   { id: "pump", title: "Pump.fun", tokens: [], unavailable: false },
 ];
 

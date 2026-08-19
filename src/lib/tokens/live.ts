@@ -12,6 +12,7 @@ export type AxiomLiveTabId =
   | "most_holders"
   | "low_risk"
   | "axm_score"
+  | "early_signals"
   | "pump";
 
 export interface AxiomLiveTab {
@@ -38,6 +39,7 @@ function tabsFromUniverse(
     { id: "most_holders", title: "Most Holders", tokens, unavailable },
     { id: "low_risk", title: "Low Risk", tokens, unavailable },
     { id: "axm_score", title: "AXM Score", tokens, unavailable },
+    { id: "early_signals", title: "Early Signals", tokens, unavailable },
     { id: "pump", title: "Pump.fun", tokens: [], unavailable: false },
   ];
 }

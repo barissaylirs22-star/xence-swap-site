@@ -16,6 +16,7 @@ import {
   type DiscoveryEnrichment,
   type DiscoveryFilterId,
 } from "@/lib/discovery/filters";
+import { assessEarlySignal } from "@/lib/discovery/earlySignals";
 import {
   getFullAxiomScoreCacheVersion,
   lightweightBandTone,
@@ -128,6 +129,12 @@ function axmBadgeClass(score: ResolvedLiveAxiomScore | null | undefined): string
   if (tone === "healthy") return styles.axmHealthy;
   if (tone === "caution") return styles.axmCaution;
   return styles.axmRisk;
+}
+
+function earlyBadgeClass(level: string): string {
+  if (level === "strong") return styles.earlyStrong;
+  if (level === "building") return styles.earlyBuilding;
+  return styles.earlyEarly;
 }
 
 export function AxiomLivePanel({
@@ -301,7 +308,9 @@ export function AxiomLivePanel({
           <div className={styles.note}>
             {tab === "most_holders" || tab === "low_risk"
               ? AXIOM_LIVE.enrichingFilter
-              : AXIOM_LIVE.empty}
+              : tab === "early_signals"
+                ? AXIOM_LIVE.earlySignalsEmpty
+                : AXIOM_LIVE.empty}
           </div>
         ) : (
           <>
@@ -433,6 +442,7 @@ function LiveTokenRow({
         : "—";
   const riskLevel = enrichment?.riskLevel ?? null;
   const axmScore = resolveLiveAxiomScore(token, enrichment, now);
+  const earlySignal = assessEarlySignal(token, enrichment, now);
   const movement = deriveMovementReason(token, now);
   const concentration = deriveConcentrationCue(enrichment);
   const growthSummary =
@@ -462,6 +472,20 @@ function LiveTokenRow({
           <span className={styles.symbol}>{token.symbol}</span>
           {riskLevel ? (
             <span className={riskBadgeClass(riskLevel)}>{riskLevel}</span>
+          ) : null}
+          {earlySignal.level !== "none" && earlySignal.label ? (
+            <span
+              className={[styles.earlyBadge, earlyBadgeClass(earlySignal.level)].join(
+                " ",
+              )}
+              title={[
+                `Early Signal · ${earlySignal.label}`,
+                "Multi-confirmation activity cue — not a price prediction",
+                ...earlySignal.confirmations.map((c) => `• ${c.message}`),
+              ].join("\n")}
+            >
+              {earlySignal.label}
+            </span>
           ) : null}
           {showUnverified ? (
             <span className={styles.badgeWarn}>{SWAP_COPY.unverified}</span>

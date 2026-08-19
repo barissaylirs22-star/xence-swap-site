@@ -411,6 +411,37 @@
   background: rgba(158, 182, 255, 0.04);
 }
 
+.earlyBadge {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.45;
+  padding: 0 5px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.earlyEarly {
+  color: #9ec5ff;
+  background: rgba(96, 165, 250, 0.1);
+  border-color: rgba(96, 165, 250, 0.28);
+}
+
+.earlyBuilding {
+  color: #f6d58a;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.earlyStrong {
+  color: #9ef0c8;
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
 .price {
   font-family: var(--font-mono);
   font-size: 0.88rem;

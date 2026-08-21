@@ -45,6 +45,29 @@ export const AXIOM_SCORE_WEIGHTS = {
   whale: 15,
 } as const;
 
+/**
+ * Global soft/hard caps applied AFTER category scoring.
+ * Completeness / structural ceilings — not Risk Analysis penalties.
+ */
+export const AXM_SCORE_CAP = {
+  /** Extreme concentration → Fragile Structure ceiling. */
+  extremeConcentration: 29,
+  /** High concentration → Weak Structure ceiling. */
+  highConcentration: 49,
+  /** Medium concentration / evidence incompleteness / soft dangers. */
+  caution: 69,
+} as const;
+
+/** Concentration thresholds for global caps (known values only). */
+export const AXM_CONCENTRATION_CAP = {
+  extremeLargestPct: 90,
+  extremeTop10Pct: 95,
+  highLargestPct: 50,
+  highTop10Pct: 85,
+  mediumLargestPct: 35,
+  mediumTop10Pct: 70,
+} as const;
+
 /** Dead zones — tiny moves must not swing the score. */
 export const SCORE_DEADZONE = {
   /** Holder growth |%| below this → treat as stable. */
@@ -783,6 +806,189 @@ function scoreWhale(
   };
 }
 
+/** Usable largest / top-10 concentration for scoring + completeness. */
+export function hasUsableHolderConcentration(
+  security: TokenSecurityFacts,
+): boolean {
+  if (!security.holdersAvailable) return false;
+  const top = security.topHolderPct;
+  const top10 = security.top10HolderPct;
+  return (
+    (top != null && Number.isFinite(top)) ||
+    (top10 != null && Number.isFinite(top10))
+  );
+}
+
+/**
+ * Strong dangerous distribution already confirmed by whale analysis.
+ * Uses riskRelevant major sells / major distribution only — accumulation
+ * does not cancel; micro/display-only events do not qualify.
+ */
+export function hasStrongWhaleDanger(
+  whaleActivity: WhaleActivityFacts | null | undefined,
+): boolean {
+  if (!whaleActivity || whaleActivity.status !== "ready") return false;
+  const riskEvents = whaleActivity.events.filter((e) => e.riskRelevant);
+  const majorSells = riskEvents.some(
+    (e) =>
+      e.kind === "confirmed_sell" &&
+      (e.major || e.isTopHolder) &&
+      (e.usdValue == null || e.usdValue >= SCORE_DEADZONE.whaleUsd),
+  );
+  if (majorSells) return true;
+  return riskEvents.some(
+    (e) =>
+      e.major &&
+      (e.kind === "distribution" ||
+        e.kind === "balance_decrease" ||
+        e.kind === "top_holder_transfer"),
+  );
+}
+
+function pushCapFactor(
+  factors: AxiomScoreFactor[],
+  code: string,
+  message: string,
+  weight: number,
+): void {
+  factors.push({
+    code,
+    message,
+    tone: "warning",
+    weight,
+  });
+}
+
+/**
+ * Apply global structural / completeness caps after category points.
+ * Missing known inputs never fabricate concentration or liquidity caps.
+ */
+export function applyAxiomScoreGlobalCaps(input: {
+  score: number;
+  security: TokenSecurityFacts;
+  market: TokenMarketFacts;
+  trading: TokenTradingFacts;
+  whaleActivity?: WhaleActivityFacts | null;
+  applySecurityCompletenessCap?: boolean;
+  factors: AxiomScoreFactor[];
+}): number {
+  let score = input.score;
+  const uncapped = input.score;
+  const { security, market, trading, factors } = input;
+  const applySecurityCap = input.applySecurityCompletenessCap !== false;
+  const top = security.topHolderPct;
+  const top10 = security.top10HolderPct;
+  const knownTop = top != null && Number.isFinite(top);
+  const knownTop10 = top10 != null && Number.isFinite(top10);
+
+  const applyCeiling = (
+    ceiling: number,
+    code: string,
+    message: string,
+    weight: number,
+  ) => {
+    if (uncapped <= ceiling && score <= ceiling) return;
+    if (score > ceiling) score = ceiling;
+    if (uncapped > ceiling) {
+      pushCapFactor(factors, code, message, weight);
+    }
+  };
+
+  // 1) Holder concentration structural caps (known values only)
+  if (
+    (knownTop && top! >= AXM_CONCENTRATION_CAP.extremeLargestPct) ||
+    (knownTop10 && top10! >= AXM_CONCENTRATION_CAP.extremeTop10Pct)
+  ) {
+    applyCeiling(
+      AXM_SCORE_CAP.extremeConcentration,
+      "cap_extreme_concentration",
+      "Extreme holder concentration",
+      20,
+    );
+  } else if (
+    (knownTop && top! >= AXM_CONCENTRATION_CAP.highLargestPct) ||
+    (knownTop10 && top10! >= AXM_CONCENTRATION_CAP.highTop10Pct)
+  ) {
+    applyCeiling(
+      AXM_SCORE_CAP.highConcentration,
+      "cap_high_concentration",
+      "High holder concentration",
+      18,
+    );
+  } else if (
+    (knownTop && top! >= AXM_CONCENTRATION_CAP.mediumLargestPct) ||
+    (knownTop10 && top10! >= AXM_CONCENTRATION_CAP.mediumTop10Pct)
+  ) {
+    applyCeiling(
+      AXM_SCORE_CAP.caution,
+      "cap_medium_concentration",
+      "High holder concentration",
+      16,
+    );
+  }
+
+  // 2) Missing holders — evidence/completeness, not a bad-holders penalty
+  if (!hasUsableHolderConcentration(security)) {
+    applyCeiling(
+      AXM_SCORE_CAP.caution,
+      "cap_holders_incomplete",
+      "Holder data incomplete",
+      15,
+    );
+  }
+
+  // 4) Unknown mint/freeze — Full path only (lite never probes authorities)
+  if (
+    applySecurityCap &&
+    (security.mintAuthorityActive === null ||
+      security.freezeAuthorityActive === null)
+  ) {
+    applyCeiling(
+      AXM_SCORE_CAP.caution,
+      "cap_security_incomplete",
+      "Security data incomplete",
+      15,
+    );
+  }
+
+  // 5) Jupiter route explicitly unavailable
+  if (trading.routeAvailable === false) {
+    applyCeiling(
+      AXM_SCORE_CAP.caution,
+      "cap_route_unavailable",
+      "Jupiter route unavailable",
+      15,
+    );
+  }
+
+  // 6) Whale danger soft cap
+  if (hasStrongWhaleDanger(input.whaleActivity)) {
+    applyCeiling(
+      AXM_SCORE_CAP.caution,
+      "cap_whale_danger",
+      "Major holder distribution",
+      15,
+    );
+  }
+
+  // 7) Very low liquidity soft cap (known liquidity only)
+  const liq = market.liquidityUsd;
+  if (
+    liq != null &&
+    Number.isFinite(liq) &&
+    liq < RISK_VERY_LOW_LIQUIDITY_USD
+  ) {
+    applyCeiling(
+      AXM_SCORE_CAP.caution,
+      "cap_very_low_liquidity",
+      "Very low liquidity",
+      15,
+    );
+  }
+
+  return score;
+}
+
 function computeConfidence(input: {
   security: TokenSecurityFacts;
   market: TokenMarketFacts;
@@ -833,6 +1039,7 @@ export function computeAxiomScore(input: {
   holderIntel?: HolderIntelV2Facts | null;
   whaleActivity?: WhaleActivityFacts | null;
   riskReasons?: RiskReason[];
+  applySecurityCompletenessCap?: boolean;
 }): AxiomScoreResult {
   const holderIntel = input.holderIntel ?? null;
   const whaleActivity = input.whaleActivity ?? null;
@@ -847,7 +1054,16 @@ export function computeAxiomScore(input: {
   ];
 
   const raw = categories.reduce((s, c) => s + c.points, 0);
-  const score = Math.round(clamp(raw, 0, 100));
+  const uncapped = Math.round(clamp(raw, 0, 100));
+  const score = applyAxiomScoreGlobalCaps({
+    score: uncapped,
+    security: input.security,
+    market: input.market,
+    trading: input.trading,
+    whaleActivity,
+    applySecurityCompletenessCap: input.applySecurityCompletenessCap,
+    factors,
+  });
   const { band, label } = classifyAxiomScore(score);
 
   const reasons = input.riskReasons ?? [];
@@ -876,10 +1092,14 @@ export function computeAxiomScore(input: {
     .filter((f) => f.tone === "positive")
     .sort((a, b) => b.weight - a.weight)
     .slice(0, 3);
-  const warnings = uniq
-    .filter((f) => f.tone === "warning")
-    .sort((a, b) => b.weight - a.weight)
-    .slice(0, 3);
+  // Cap explainability always surfaces; then strongest remaining warnings.
+  const capWarnings = uniq
+    .filter((f) => f.tone === "warning" && f.code.startsWith("cap_"))
+    .sort((a, b) => b.weight - a.weight);
+  const otherWarnings = uniq
+    .filter((f) => f.tone === "warning" && !f.code.startsWith("cap_"))
+    .sort((a, b) => b.weight - a.weight);
+  const warnings = [...capWarnings, ...otherWarnings].slice(0, 5);
 
   return {
     score,

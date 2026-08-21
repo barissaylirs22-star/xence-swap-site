@@ -6,7 +6,10 @@ import {
   withAxiomScore,
   type TokenIntelligence,
 } from "@/lib/intelligence";
-import { rememberFullAxiomScore } from "@/lib/discovery/resolvedAxiomScore";
+import {
+  isFullAxiomScorePublishable,
+  rememberFullAxiomScore,
+} from "@/lib/discovery/resolvedAxiomScore";
 import { SOL_MINT } from "@/lib/tokens/catalog";
 import type { TokenAsset } from "@/lib/tokens/types";
 
@@ -62,11 +65,30 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
 
   const mint = token?.mint ?? null;
 
-  // Publish real Full Axiom Score into Live sync cache (no extra network).
+  // Publish Full AXM into Live sync cache only after holder stage settles.
+  // Provisional core/pre-holder scores must not replace lightweight previews.
   useEffect(() => {
     if (!data?.mint || !data.axiomScore) return;
+    const skipHolders =
+      data.token?.isNativeSol === true || data.mint === SOL_MINT;
+    if (
+      !isFullAxiomScorePublishable({
+        holdersStatus: data.security.holdersStatus,
+        holdersPending: data.security.holdersPending,
+        skipHolders,
+      })
+    ) {
+      return;
+    }
     rememberFullAxiomScore(data.mint, data.axiomScore);
-  }, [data?.mint, data?.axiomScore, data?.updatedAt]);
+  }, [
+    data?.mint,
+    data?.axiomScore,
+    data?.updatedAt,
+    data?.security.holdersStatus,
+    data?.security.holdersPending,
+    data?.token?.isNativeSol,
+  ]);
 
   useEffect(() => {
     const selected = tokenRef.current;

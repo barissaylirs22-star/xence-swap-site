@@ -239,6 +239,8 @@ export function computeLightweightAxiomScore(
     trading,
     holderIntel: null,
     whaleActivity: null,
+    // Discovery never probes mint/freeze — do not apply Full security completeness cap.
+    applySecurityCompletenessCap: false,
   });
 
   let score = applyStructuralPenalties(engine.score, token);

@@ -52,12 +52,17 @@ export {
 
 export {
   AXIOM_SCORE_WEIGHTS,
+  AXM_CONCENTRATION_CAP,
+  AXM_SCORE_CAP,
   SCORE_DEADZONE,
   alignRiskWithAxiomScore,
+  applyAxiomScoreGlobalCaps,
   classifyAxiomScore,
   computeAxiomScore,
   computeAxiomScoreLite,
   finalizeRiskAndScore,
+  hasStrongWhaleDanger,
+  hasUsableHolderConcentration,
   mapAxiomScoreToRiskLevel,
   withAxiomScore,
 } from "./axiomScore";

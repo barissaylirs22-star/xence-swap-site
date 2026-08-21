@@ -67,8 +67,31 @@ export function peekFullAxiomScore(mint: string): CachedFullAxiomScore | null {
 }
 
 /**
+ * Whether Token Detail holder enrichment has settled enough to publish
+ * a Full AXM Score into the Live sync cache.
+ *
+ * Allowed: ready / unavailable / error (or native SOL skip).
+ * Blocked: pending / idle provisional core scores before holder stage.
+ */
+export function isFullAxiomScorePublishable(input: {
+  holdersStatus: string;
+  holdersPending?: boolean;
+  skipHolders?: boolean;
+}): boolean {
+  if (input.skipHolders) return true;
+  if (input.holdersPending) return false;
+  return (
+    input.holdersStatus === "ready" ||
+    input.holdersStatus === "unavailable" ||
+    input.holdersStatus === "error"
+  );
+}
+
+/**
  * Store an actual Full Axiom Score from Token Detail (exact values, no transform).
  * Extends/replaces TTL for that mint only.
+ * Callers must gate with `isFullAxiomScorePublishable` so pre-holder
+ * provisional scores never replace Live lightweight previews.
  */
 export function rememberFullAxiomScore(
   mint: string,

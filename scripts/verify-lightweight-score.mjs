@@ -49,7 +49,7 @@ const TOKENS = [
 console.log("=== Lightweight Axiom Score verification ===\n");
 
 const runner = resolve(root, "scripts/_lightweight-score-runner.mts");
-const result = spawnSync("npx", ["--yes", "vite-node", runner], {
+const result = spawnSync("npx", ["--yes", "vite-node@2.1.9", runner], {
   cwd: root,
   encoding: "utf8",
   env: {

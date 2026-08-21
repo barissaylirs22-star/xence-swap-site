@@ -300,8 +300,12 @@ export async function fetchDexMarketByMints(
     const chunk = pending.slice(i, i + MINT_ENRICH_BATCH);
     const bestByMint = await loadBestPairsByMint(chunk, signal);
     for (const mint of chunk) {
-      const metrics = metricsFromPair(bestByMint.get(mint));
-      setCached(`dex:metrics:${mint}`, metrics, METRICS_TTL_MS);
+      const pair = bestByMint.get(mint);
+      const metrics = metricsFromPair(pair);
+      // Only cache real pair hits — empty/failed responses must not poison the TTL cache.
+      if (pair) {
+        setCached(`dex:metrics:${mint}`, metrics, METRICS_TTL_MS);
+      }
       out.set(mint, metrics);
     }
   }
@@ -423,7 +427,21 @@ export async function fetchDiscoveryUniverse(
   const tokens = await enrichWithPairs(capped, signal, (partial) => {
     if (partial.length > 0) onPartial?.(partial);
   });
+  // Aborted / incomplete enrich must not poison the universe cache.
+  if (signal?.aborted) return null;
   if (tokens.length === 0) return null;
+  if (tokens.length < capped.length) {
+    return tokens;
+  }
+
+  // All-null metrics usually means the pairs enrich failed — never cache that.
+  const withMetrics = tokens.filter(
+    (t) =>
+      (t.priceUsd != null && Number.isFinite(t.priceUsd)) ||
+      (t.volume24hUsd != null && Number.isFinite(t.volume24hUsd)) ||
+      (t.liquidityUsd != null && Number.isFinite(t.liquidityUsd)),
+  ).length;
+  if (withMetrics === 0) return null;
 
   setCached(cacheKey, tokens, CACHE_TTL_MS);
   setCached("dex:discovery-universe", tokens, CACHE_TTL_MS);

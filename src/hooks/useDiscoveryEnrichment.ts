@@ -30,6 +30,10 @@ function withIntelFields(
   };
 }
 
+function isReady(entry: DiscoveryEnrichment | undefined): boolean {
+  return entry?.status === "ready";
+}
+
 /**
  * Progressive holder/risk enrichment for visible discovery rows.
  * Uses full concentration+census but with concurrency 1 and a session cap.
@@ -52,24 +56,28 @@ export function useDiscoveryEnrichment(
   tokensRef.current = tokens;
   const enrichmentRef = useRef(enrichment);
   enrichmentRef.current = enrichment;
+  const enqueueRef = useRef<(mint: string, front?: boolean) => void>(() => {});
 
-  // Seed from cache when token set changes.
+  // Seed from cache when token set changes — never wipe ready rows.
   useEffect(() => {
     if (!enabled) return;
     setEnrichment((prev) => {
       const next = new Map(prev);
+      let changed = false;
       for (const token of tokens) {
         if (next.has(token.mint) || doneRef.current.has(token.mint)) continue;
         const cached = getCached<DiscoveryEnrichment>(enrichCacheKey(token.mint));
         if (cached) {
           next.set(token.mint, withIntelFields(cached));
           doneRef.current.add(token.mint);
+          changed = true;
         }
       }
-      return next;
+      return changed ? next : prev;
     });
   }, [tokens, enabled]);
 
+  // Observer + pump live for the panel session; do not tear down on universe refresh.
   useEffect(() => {
     if (!enabled) return;
 
@@ -89,21 +97,30 @@ export function useDiscoveryEnrichment(
         const token = tokensRef.current.find((t) => t.mint === mint);
         if (!token) continue;
 
+        // Never re-fetch or flash over a ready row.
+        if (isReady(enrichmentRef.current.get(mint))) {
+          doneRef.current.add(mint);
+          continue;
+        }
+
         doneRef.current.add(mint);
         sessionCountRef.current += 1;
         inflightRef.current += 1;
 
         setEnrichment((prev) => {
+          const existing = prev.get(mint);
+          if (isReady(existing)) return prev;
           const next = new Map(prev);
           next.set(
             mint,
             withIntelFields({
-              holderCount: null,
-              topHolderPct: null,
-              top10HolderPct: null,
-              riskLevel: null,
+              holderCount: existing?.holderCount ?? null,
+              topHolderPct: existing?.topHolderPct ?? null,
+              top10HolderPct: existing?.top10HolderPct ?? null,
+              riskLevel: existing?.riskLevel ?? null,
               status: "loading",
-              holderGrowth: null,
+              holderGrowth: existing?.holderGrowth ?? null,
+              concentrationTrend: existing?.concentrationTrend ?? null,
             }),
           );
           return next;
@@ -192,9 +209,15 @@ export function useDiscoveryEnrichment(
             );
 
             setEnrichment((prev) => {
-              const next = new Map(prev);
-              // Keep growth/trend if a racing POST already merged them.
               const existing = prev.get(mint);
+              // Prefer keeping a prior ready row over a worse unavailable settle.
+              if (
+                isReady(existing) &&
+                entry.status !== "ready"
+              ) {
+                return prev;
+              }
+              const next = new Map(prev);
               next.set(
                 mint,
                 withIntelFields({
@@ -211,7 +234,14 @@ export function useDiscoveryEnrichment(
               cancelled ||
               (err instanceof DOMException && err.name === "AbortError")
             ) {
-              doneRef.current.delete(mint);
+              // Allow retry only when we never reached ready for this mint.
+              if (!isReady(enrichmentRef.current.get(mint))) {
+                doneRef.current.delete(mint);
+              }
+              return;
+            }
+            // Do not clobber a ready row with a transient failure.
+            if (isReady(enrichmentRef.current.get(mint))) {
               return;
             }
             const fail = withIntelFields({
@@ -228,6 +258,7 @@ export function useDiscoveryEnrichment(
             });
             setCached(enrichCacheKey(mint), fail, FAIL_TTL_MS);
             setEnrichment((prev) => {
+              if (isReady(prev.get(mint))) return prev;
               const next = new Map(prev);
               next.set(mint, fail);
               return next;
@@ -243,13 +274,17 @@ export function useDiscoveryEnrichment(
 
     const enqueue = (mint: string, front = false) => {
       if (!mint || doneRef.current.has(mint)) return;
-      if (enrichmentRef.current.get(mint)?.status === "ready") return;
+      if (isReady(enrichmentRef.current.get(mint))) {
+        doneRef.current.add(mint);
+        return;
+      }
       if (queueRef.current.includes(mint)) return;
       if (sessionCountRef.current >= MAX_SESSION_ENRICH) return;
       if (front) queueRef.current.unshift(mint);
       else queueRef.current.push(mint);
       pump();
     };
+    enqueueRef.current = enqueue;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -278,19 +313,23 @@ export function useDiscoveryEnrichment(
     const mo = new MutationObserver(() => observeAll());
     mo.observe(document.body, { childList: true, subtree: true });
 
-    // Preferentially queue first page by volume for Most Holders / Low Risk warm-up.
-    const warm = [...tokens]
-      .filter((t) => t.volume24hUsd != null)
-      .sort((a, b) => (b.volume24hUsd ?? 0) - (a.volume24hUsd ?? 0))
-      .slice(0, 8);
-    for (const t of warm) enqueue(t.mint);
-
     return () => {
       cancelled = true;
       observer.disconnect();
       mo.disconnect();
       for (const c of controllers.values()) c.abort();
+      enqueueRef.current = () => {};
     };
+  }, [enabled]);
+
+  // Warm newly arrived universe mints without aborting in-flight enrichment.
+  useEffect(() => {
+    if (!enabled || tokens.length === 0) return;
+    const warm = [...tokens]
+      .filter((t) => t.volume24hUsd != null)
+      .sort((a, b) => (b.volume24hUsd ?? 0) - (a.volume24hUsd ?? 0))
+      .slice(0, 8);
+    for (const t of warm) enqueueRef.current(t.mint);
   }, [enabled, tokens]);
 
   return enrichment;

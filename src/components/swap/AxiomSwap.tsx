@@ -13,6 +13,7 @@ import {
   normalizeImpactPercent,
 } from "@/lib/swap/priceImpact";
 import { quoteMatchesDisplayedPair } from "@/lib/swap/pairGuard";
+import { isQuoteFresh } from "@/lib/swap/quoteFreshness";
 import { assessSwapReadiness } from "@/lib/swap/readiness";
 import {
   clampSlippageBps,
@@ -219,15 +220,36 @@ export function AxiomSwap() {
     !confirming &&
     !isSwapSubmitLocked();
 
-  // Close confirmation if the pair becomes unsafe (never while confirming).
+  // Close confirmation if the reviewed pair/amount becomes unsafe or the
+  // modal's own quote expires. Do NOT key off the background useSwapQuote
+  // refresh/expiry — that tore down reconfirm state (and wiped "Quote
+  // updated…") before the user could Confirm again / reach Phantom.
   useEffect(() => {
     if (!confirmOpen || confirming) return;
-    if (!quote || !fresh || !mintAligned) {
+    if (!confirmDetails) {
+      setConfirmOpen(false);
+      return;
+    }
+
+    const pairDrifted =
+      confirmDetails.payToken.mint !== payToken.mint ||
+      confirmDetails.receiveToken.mint !== receiveToken.mint ||
+      confirmDetails.payAmount !== payAmount;
+
+    if (pairDrifted || !isQuoteFresh(confirmDetails.quote)) {
       setConfirmOpen(false);
       setConfirmDetails(null);
       if (!success) setConfirmStatus(SWAP_COPY.staleQuote);
     }
-  }, [confirmOpen, confirming, quote, fresh, mintAligned, success]);
+  }, [
+    confirmOpen,
+    confirming,
+    confirmDetails,
+    payToken.mint,
+    receiveToken.mint,
+    payAmount,
+    success,
+  ]);
 
   const statusText = (() => {
     if (success) return null;
@@ -403,6 +425,10 @@ export function AxiomSwap() {
         setPayAmount("");
         setQuoteResetKey((n) => n + 1);
         setBalanceTick((n) => n + 1);
+      } catch {
+        // confirmAndExecuteSwap normally returns status:"error"; keep a
+        // visible fallback if anything unexpected escapes.
+        setConfirmStatus(SWAP_COPY.failure);
       } finally {
         setConfirming(false);
         releaseSwapSubmitLock(owner);

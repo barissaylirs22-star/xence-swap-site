@@ -1,6 +1,13 @@
 import type { SwapQuote } from "./types";
 
-/** True when a refreshed quote differs enough that the user must re-confirm. */
+/**
+ * True when a refreshed quote differs enough that the user must re-confirm.
+ *
+ * Route label flips alone are NOT material — Jupiter often rotates pools
+ * between consecutive quotes with negligible out/min change. Treating
+ * routeSummary as material caused Confirm to loop on "Quote updated…"
+ * forever and never reach Phantom. Economic changes remain gated below.
+ */
 export function isMaterialQuoteChange(
   previous: SwapQuote,
   next: SwapQuote,
@@ -9,7 +16,6 @@ export function isMaterialQuoteChange(
   if (previous.outputMint !== next.outputMint) return true;
   if (previous.inAmountRaw !== next.inAmountRaw) return true;
   if (previous.slippageBps !== next.slippageBps) return true;
-  if (previous.routeSummary !== next.routeSummary) return true;
 
   try {
     const prevOut = BigInt(previous.outAmountRaw);

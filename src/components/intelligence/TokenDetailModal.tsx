@@ -286,7 +286,12 @@ export function TokenDetailModal({
                 <span className={styles.inlineLoad}>{COPY.holdersLoading}</span>
               ) : security?.holdersStatus === "error" ||
                 security?.holdersStatus === "unavailable" ? (
-                <span className={styles.inlineLoad} title={security.holdersError ?? undefined}>
+                <span
+                  className={styles.inlineLoad}
+                  title={
+                    shortHoldersError(security.holdersError) ?? COPY.unavailable
+                  }
+                >
                   {shortHoldersError(security.holdersError) ?? COPY.unavailable}
                 </span>
               ) : null}

@@ -14,6 +14,12 @@ import type { TokenAsset } from "@/lib/tokens/types";
 const HOLDERS_ENRICH_FAILSAFE_MS = 90_000;
 const WHALE_ENRICH_FAILSAFE_MS = 45_000;
 
+const FRIENDLY_INTEL_ERROR = "Token intelligence unavailable";
+const FRIENDLY_HOLDERS_ERROR = "Holder analysis unavailable";
+const FRIENDLY_HOLDERS_TIMEOUT = "Holder analysis timed out";
+const FRIENDLY_WHALE_ERROR = "Whale activity unavailable";
+const FRIENDLY_WHALE_TIMEOUT = "Whale activity timed out";
+
 function settleHoldersFailed(
   core: TokenIntelligence,
   message: string,
@@ -52,6 +58,7 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
   const [error, setError] = useState<string | null>(null);
   const tokenRef = useRef(token);
   tokenRef.current = token;
+  const requestMintRef = useRef<string | null>(null);
 
   const mint = token?.mint ?? null;
 
@@ -64,6 +71,7 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
   useEffect(() => {
     const selected = tokenRef.current;
     if (!selected || !mint) {
+      requestMintRef.current = null;
       setData(null);
       setLoading(false);
       setHoldersLoading(false);
@@ -74,11 +82,15 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
 
     const controller = new AbortController();
     let enrichStarted = false;
+    requestMintRef.current = mint;
     setLoading(true);
     setHoldersLoading(false);
     setWhaleLoading(false);
     setError(null);
     setData(null);
+
+    const isCurrent = () =>
+      !controller.signal.aborted && requestMintRef.current === mint;
 
     void (async () => {
       try {
@@ -86,7 +98,9 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
           signal: controller.signal,
           includeHolders: false,
         });
-        if (controller.signal.aborted) return;
+        if (!isCurrent()) return;
+        // Guard: response must match the open token.
+        if (core.mint && core.mint !== mint) return;
         setData(core);
         setLoading(false);
 
@@ -99,10 +113,7 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
 
         let failsafeTimer: ReturnType<typeof setTimeout> | undefined;
         const failsoft = () =>
-          settleHoldersFailed(
-            core,
-            "Holder analysis timed out — RPC may block getTokenLargestAccounts",
-          );
+          settleHoldersFailed(core, FRIENDLY_HOLDERS_TIMEOUT);
 
         const failsafe = new Promise<TokenIntelligence>((resolve) => {
           failsafeTimer = setTimeout(
@@ -122,29 +133,32 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
           ) {
             throw err;
           }
-          return settleHoldersFailed(
-            core,
-            err instanceof Error ? err.message : "Holder analysis failed",
-          );
+          if (import.meta.env.DEV) {
+            console.info(
+              "[token-intel] holders enrich failed",
+              err instanceof Error ? err.message : "unknown",
+            );
+          }
+          return settleHoldersFailed(core, FRIENDLY_HOLDERS_ERROR);
         });
 
         void enrichPromise.then((enriched) => {
-          if (!controller.signal.aborted) setData(enriched);
+          if (isCurrent()) setData(enriched);
         });
 
         let enriched: TokenIntelligence;
         try {
           enriched = await Promise.race([enrichPromise, failsafe]);
-          if (controller.signal.aborted) return;
+          if (!isCurrent()) return;
           setData(enriched);
         } finally {
           if (failsafeTimer) clearTimeout(failsafeTimer);
-          if (!controller.signal.aborted) setHoldersLoading(false);
+          if (isCurrent()) setHoldersLoading(false);
         }
 
         // Whale activity — after holders settle; never blocks holder UI.
         if (
-          controller.signal.aborted ||
+          !isCurrent() ||
           enriched.security.holdersStatus === "error"
         ) {
           return;
@@ -163,6 +177,12 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
             ) {
               throw err;
             }
+            if (import.meta.env.DEV) {
+              console.info(
+                "[token-intel] whale enrich failed",
+                err instanceof Error ? err.message : "unknown",
+              );
+            }
             return withAxiomScore(
               {
                 ...enriched,
@@ -172,10 +192,7 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
                   smartMoneyAvailable: false,
                   analyzedAccounts: 0,
                   updatedAt: Date.now(),
-                  errorMessage:
-                    err instanceof Error
-                      ? err.message
-                      : "Whale activity unavailable",
+                  errorMessage: FRIENDLY_WHALE_ERROR,
                 },
               },
               false,
@@ -195,7 +212,7 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
                         smartMoneyAvailable: false,
                         analyzedAccounts: 0,
                         updatedAt: Date.now(),
-                        errorMessage: "Whale activity timed out",
+                        errorMessage: FRIENDLY_WHALE_TIMEOUT,
                       },
                     },
                     false,
@@ -206,47 +223,46 @@ export function useTokenIntelligence(token: TokenAsset | null | undefined) {
           });
 
           const withWhale = await Promise.race([whalePromise, whaleFailsafe]);
-          if (!controller.signal.aborted) setData(withWhale);
+          if (isCurrent()) setData(withWhale);
         } finally {
           if (whaleTimer) clearTimeout(whaleTimer);
-          if (!controller.signal.aborted) setWhaleLoading(false);
+          if (isCurrent()) setWhaleLoading(false);
         }
       } catch (err) {
-        if (controller.signal.aborted) return;
-        setError(
-          err instanceof Error ? err.message : "Token intelligence unavailable",
-        );
+        if (!isCurrent()) return;
+        if (import.meta.env.DEV) {
+          console.info(
+            "[token-intel] core load failed",
+            err instanceof Error ? err.message : "unknown",
+          );
+        }
+        setError(FRIENDLY_INTEL_ERROR);
         setData((prev) => {
-          if (!prev) return prev;
+          if (!prev || prev.mint !== mint) return prev;
           if (
             prev.security.holdersPending ||
             prev.security.holdersStatus === "pending"
           ) {
-            return settleHoldersFailed(
-              prev,
-              err instanceof Error ? err.message : "Holder analysis failed",
-            );
+            return settleHoldersFailed(prev, FRIENDLY_HOLDERS_ERROR);
           }
           return prev;
         });
       } finally {
-        if (!controller.signal.aborted) {
+        if (isCurrent()) {
           setHoldersLoading(false);
           setWhaleLoading(false);
           setLoading(false);
           setData((prev) => {
             if (
               !prev ||
+              prev.mint !== mint ||
               !enrichStarted ||
               (prev.security.holdersStatus !== "pending" &&
                 !prev.security.holdersPending)
             ) {
               return prev;
             }
-            return settleHoldersFailed(
-              prev,
-              "Holder analysis did not complete",
-            );
+            return settleHoldersFailed(prev, FRIENDLY_HOLDERS_ERROR);
           });
         }
       }

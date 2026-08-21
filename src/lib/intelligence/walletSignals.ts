@@ -183,15 +183,17 @@ export function deriveWalletSignals(
     if (direction === "accumulating" && (b.major || b.riskRelevant || strongUsd)) {
       if (b.major && strongUsd) {
         code = "strong_accumulation";
-        label = "STRONG ACCUMULATION";
+        // Stronger significance/risk tier only.
+        label = b.isTopHolder ? "Major holder" : "Strong accumulation";
         reason =
           "Unusually strong net buying observed from a large holder in the current observation window.";
       } else {
+        // Small / non-major display tier — neutral observational labels.
         code = "notable_accumulation";
-        label = repeatActivity ? "REPEAT ACTIVITY" : "ACCUMULATING";
+        label = "Holder accumulation";
         reason = repeatActivity
           ? "Repeated large-holder accumulation detected in the current observation window."
-          : "Notable large-holder accumulation observed in the current window.";
+          : "Large-holder accumulation observed in the current window.";
       }
     } else if (
       direction === "distributing" &&
@@ -199,37 +201,29 @@ export function deriveWalletSignals(
     ) {
       if (b.major && strongUsd) {
         code = "strong_distribution";
-        label = "STRONG DISTRIBUTION";
+        label = b.isTopHolder ? "Major holder" : "Strong distribution";
         reason =
           "Unusually strong net selling observed from a large holder in the current observation window.";
       } else {
         code = "notable_distribution";
-        label = repeatActivity ? "REPEAT ACTIVITY" : "DISTRIBUTING";
+        label = "Holder distribution";
         reason = repeatActivity
           ? "Repeated large-holder distribution detected in the current observation window."
-          : "Notable large-holder distribution observed in the current window.";
+          : "Large-holder distribution observed in the current window.";
       }
     } else if (b.isTopHolder || b.major || b.riskRelevant) {
       code = "large_holder_activity";
-      label = "LARGE HOLDER ACTIVITY";
+      label = "Large holder activity";
       reason =
         "Observable activity from a large token holder in the current window — not a skill or profitability rating.";
     } else if (repeatActivity) {
       code = "repeat_activity";
-      label = "REPEAT ACTIVITY";
+      label = "Large holder activity";
       reason =
         "Multiple observed events from the same wallet in the current window.";
     } else {
       // Minor residual events — skip to avoid clutter.
       continue;
-    }
-
-    // Prefer NOTABLE WALLET heading when top-holder + directional
-    if (
-      b.isTopHolder &&
-      (code === "notable_accumulation" || code === "notable_distribution")
-    ) {
-      label = "NOTABLE WALLET";
     }
 
     out.push({

@@ -226,10 +226,10 @@ try {
   });
   const explained = explainTokenRisk(highIntel);
   if (explained.level !== "HIGH") throw new Error("expected HIGH");
-  if (!explained.riskSignals.some((r) => /76\.1%/.test(r.message))) {
+  if (!explained.riskSignals.some((r) => /76\.1% of supply/.test(r.message))) {
     throw new Error("expected largest-holder Why text");
   }
-  if (!explained.riskSignals.some((r) => /92\.0%/.test(r.message))) {
+  if (!explained.riskSignals.some((r) => /92\.0% of supply/.test(r.message))) {
     throw new Error("expected top10 Why text");
   }
   if (explained.riskSignals.some((r) => r.code === "insufficient_data")) {
@@ -240,6 +240,58 @@ try {
   }
   if (!explained.positiveSignals.some((p) => p.code === "mint_authority_revoked")) {
     throw new Error("HIGH token should still show revoked positives");
+  }
+
+  // 4b) Extreme concentration Why ordering (96.9% / 98.6%)
+  const extremeIntel = baseIntel({
+    market: {
+      ...baseIntel().market,
+      ageMs: 30 * 86_400_000,
+      listedAt: Date.now() - 30 * 86_400_000,
+    },
+    security: {
+      ...baseIntel().security,
+      holdersAvailable: true,
+      holdersStatus: "ready",
+      topHolderPct: 96.9,
+      top10HolderPct: 98.6,
+    },
+    holderIntel: stableHolderIntel(),
+    risk: {
+      level: "HIGH",
+      reasons: [
+        { code: "very_new_token", message: "Very new token" },
+        { code: "high_top10_concentration", message: "High top-10 holder concentration" },
+        { code: "high_holder_concentration", message: "High holder concentration" },
+      ],
+      assessedAt: Date.now(),
+    },
+  });
+  const extremeExplained = explainTokenRisk(extremeIntel);
+  if (extremeExplained.level !== "HIGH") {
+    throw new Error("extreme concentration must remain HIGH");
+  }
+  if (extremeExplained.riskSignals[0]?.code !== "high_holder_concentration") {
+    throw new Error(
+      `extreme Why must lead with largest holder, got ${extremeExplained.riskSignals[0]?.code}`,
+    );
+  }
+  if (
+    !/Largest holder controls 96\.9% of supply/.test(
+      extremeExplained.riskSignals[0]?.message ?? "",
+    )
+  ) {
+    throw new Error(`unexpected extreme largest Why: ${extremeExplained.riskSignals[0]?.message}`);
+  }
+  if (extremeExplained.riskSignals[1]?.code !== "high_top10_concentration") {
+    throw new Error("extreme top10 Why should be second");
+  }
+  if (
+    !/Top 10 holders control 98\.6% of supply/.test(
+      extremeExplained.riskSignals[1]?.message ?? "",
+    )
+  ) {
+    throw new Error(`unexpected extreme top10 Why: ${extremeExplained.riskSignals[1]?.message}`);
   }
 
   // 5) Age formatting
@@ -345,6 +397,105 @@ try {
   }
   if (lowExplained.dataConfidence !== "HIGH") {
     throw new Error(`expected HIGH confidence for complete LOW data got ${lowExplained.dataConfidence}`);
+  }
+
+  // 9) Volume / liquidity mismatch — MEDIUM floor; deep liquidity no signal
+  const {
+    assessTokenRisk,
+    assessVolumeLiquidityMismatch,
+  } = await server.ssrLoadModule("/src/lib/intelligence/risk.ts");
+  const { assessDiscoveryRiskLite } = await server.ssrLoadModule(
+    "/src/lib/discovery/riskLite.ts",
+  );
+
+  const mismatch = assessVolumeLiquidityMismatch(2_000, 500_000);
+  if (!mismatch || !mismatch.strong) {
+    throw new Error("liq $2k + vol $500k must be strong mismatch");
+  }
+  const shallowMedium = assessVolumeLiquidityMismatch(20_000, 500_000);
+  if (!shallowMedium || shallowMedium.strong) {
+    throw new Error("liq $20k + vol $500k must be medium (not strong) mismatch");
+  }
+  const deepOk = assessVolumeLiquidityMismatch(100_000, 500_000);
+  if (deepOk != null) {
+    throw new Error("deep liquidity must not emit volume/liquidity mismatch");
+  }
+  if (assessVolumeLiquidityMismatch(null, 500_000) != null) {
+    throw new Error("missing liquidity must not fabricate mismatch");
+  }
+  if (assessVolumeLiquidityMismatch(2_000, null) != null) {
+    throw new Error("missing volume must not fabricate mismatch");
+  }
+  if (assessVolumeLiquidityMismatch(0, 500_000) != null) {
+    throw new Error("zero liquidity must not divide / fabricate mismatch");
+  }
+
+  const mismatchRisk = assessTokenRisk({
+    market: {
+      ...baseIntel().market,
+      liquidityUsd: 2_000,
+      volume24hUsd: 500_000,
+      ageMs: 30 * 86_400_000,
+      listedAt: Date.now() - 30 * 86_400_000,
+    },
+    security: {
+      ...baseIntel().security,
+      holdersAvailable: true,
+      holdersStatus: "ready",
+      topHolderPct: 12,
+      top10HolderPct: 40,
+    },
+    trading: {
+      routeAvailable: true,
+      priceImpactPct: 0.4,
+      priceImpactLevel: "low",
+      veryNewTokenWarning: false,
+    },
+  });
+  if (mismatchRisk.level !== "MEDIUM") {
+    throw new Error(`vol/liq mismatch must floor MEDIUM got ${mismatchRisk.level}`);
+  }
+  if (!mismatchRisk.reasons.some((r) => r.code === "volume_liquidity_mismatch")) {
+    throw new Error("expected volume_liquidity_mismatch reason");
+  }
+
+  const liteMismatch = assessDiscoveryRiskLite({
+    token: {
+      mint: "x",
+      symbol: "X",
+      name: "X",
+      decimals: 6,
+      selectable: true,
+      liquidityUsd: 2_000,
+      volume24hUsd: 500_000,
+      listedAt: Date.now() - 30 * 86_400_000,
+    },
+    topHolderPct: 12,
+    top10HolderPct: 40,
+  });
+  if (liteMismatch.level !== "MEDIUM") {
+    throw new Error(`lite vol/liq mismatch must be MEDIUM got ${liteMismatch.level}`);
+  }
+  if (!liteMismatch.reasons.includes("volume_liquidity_mismatch")) {
+    throw new Error("lite must include volume_liquidity_mismatch");
+  }
+
+  const liteDeep = assessDiscoveryRiskLite({
+    token: {
+      mint: "y",
+      symbol: "Y",
+      name: "Y",
+      decimals: 6,
+      selectable: true,
+      liquidityUsd: 100_000,
+      volume24hUsd: 500_000,
+      listedAt: Date.now() - 30 * 86_400_000,
+    },
+    topHolderPct: 12,
+    top10HolderPct: 40,
+  });
+  if (liteDeep.reasons.includes("volume_liquidity_mismatch")) {
+    throw new Error("lite deep liquidity must not mismatch");
   }
 
   console.log("RISK_EXPLAIN_V2_OK");

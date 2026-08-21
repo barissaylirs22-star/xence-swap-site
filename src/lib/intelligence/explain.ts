@@ -15,7 +15,9 @@ import {
 } from "./holderHistory";
 import {
   isMeaningfulHolderHistory,
+  RISK_TOP10_EXTREME_PCT,
   RISK_TOP10_MEDIUM_PCT,
+  RISK_TOP_HOLDER_EXTREME_PCT,
   RISK_TOP_HOLDER_MEDIUM_PCT,
   RISK_VERY_NEW_MS,
 } from "./risk";
@@ -23,7 +25,7 @@ import {
 /** Liquidity at/above this (when known) → healthy liquidity positive. */
 export const POSITIVE_HEALTHY_LIQUIDITY_USD = 10_000;
 
-/** Meta / gap codes — belong under confidence, not the Why list. */
+/** Meta / gap codes — belong under data completeness, not the Why list. */
 const WHY_META_CODES = new Set([
   "insufficient_data",
   "holders_data_unavailable",
@@ -55,17 +57,21 @@ export interface RiskExplanation {
   summary: string;
   positiveSignals: PositiveSignal[];
   riskSignals: RiskReason[];
-  /** Deterministic availability of core inputs — not a second risk score. */
+  /**
+   * Deterministic availability of core inputs (product: Data Completeness).
+   * How much supporting data is present — not certainty the risk level is correct.
+   */
   dataConfidence: RiskDataConfidence;
 }
 
 /**
- * Data confidence from whether core Risk inputs are actually present.
- * Does not raise or lower the Risk level.
+ * Data completeness from whether core Risk inputs are actually present.
+ * Does not raise or lower the Risk level. Product label: "Data Completeness"
+ * (how much supporting data is available — not certainty the classification is correct).
  *
  * HIGH — authorities + holder concentration + market facts all available,
  *         and when holders are available, meaningful history is present
- *         (thin/missing history caps at MEDIUM — confidence ≠ risk).
+ *         (thin/missing history caps at MEDIUM — completeness ≠ risk).
  * MEDIUM — exactly two of those three, or all three with thin history
  * LOW — zero or one of those three
  */
@@ -306,6 +312,9 @@ export function formatRiskSignalMessage(
         return `Very low liquidity ($${Math.round(intel.market.liquidityUsd).toLocaleString()})`;
       }
       return reason.message;
+    case "volume_liquidity_mismatch":
+      // assessTokenRisk already emits explainable ratio context.
+      return reason.message;
     case "very_new_token":
       if (intel.market.ageMs != null && Number.isFinite(intel.market.ageMs)) {
         return formatTokenAgeMessage(intel.market.ageMs);
@@ -313,12 +322,12 @@ export function formatRiskSignalMessage(
       return reason.message;
     case "high_holder_concentration":
       if (intel.security.topHolderPct != null) {
-        return `Largest holder controls ${intel.security.topHolderPct.toFixed(1)}%`;
+        return `Largest holder controls ${intel.security.topHolderPct.toFixed(1)}% of supply`;
       }
       return reason.message;
     case "high_top10_concentration":
       if (intel.security.top10HolderPct != null) {
-        return `Top 10 holders control ${intel.security.top10HolderPct.toFixed(1)}%`;
+        return `Top 10 holders control ${intel.security.top10HolderPct.toFixed(1)}% of supply`;
       }
       return reason.message;
     case "no_jupiter_route":
@@ -410,7 +419,7 @@ export function summarizeRiskAssessment(
 
 /**
  * Full explainable Risk V2 view model for Token Detail UI.
- * Why / Positive / Data confidence — no second risk algorithm.
+ * Why / Positive / Data Completeness — no second risk algorithm.
  */
 export function explainTokenRisk(
   intel: TokenIntelligence,
@@ -438,8 +447,11 @@ export function explainTokenRisk(
     message: formatRiskSignalMessage(reason, intel),
   }));
 
-  // Why = concrete caution signals only (meta gaps → confidence, not Why).
-  const whySignals = riskSignals.filter((r) => !WHY_META_CODES.has(r.code));
+  // Why = concrete caution signals only (meta gaps → data completeness, not Why).
+  const whySignals = prioritizeExtremeConcentrationWhy(
+    riskSignals.filter((r) => !WHY_META_CODES.has(r.code)),
+    intel,
+  );
 
   return {
     level: intel.risk.level,
@@ -453,4 +465,41 @@ export function explainTokenRisk(
     riskSignals: whySignals,
     dataConfidence,
   };
+}
+
+/**
+ * Extreme concentration (≥90% largest or ≥95% top10) leads the Why list.
+ * Does not change Risk level or HIGH thresholds.
+ */
+function prioritizeExtremeConcentrationWhy(
+  signals: RiskReason[],
+  intel: Pick<TokenIntelligence, "security">,
+): RiskReason[] {
+  if (!signals.length) return signals;
+
+  const top = intel.security.topHolderPct;
+  const top10 = intel.security.top10HolderPct;
+  const extremeLargest =
+    top != null &&
+    Number.isFinite(top) &&
+    top >= RISK_TOP_HOLDER_EXTREME_PCT;
+  const extremeTop10 =
+    top10 != null &&
+    Number.isFinite(top10) &&
+    top10 >= RISK_TOP10_EXTREME_PCT;
+
+  if (!extremeLargest && !extremeTop10) return signals;
+
+  const priority = (code: string): number => {
+    if (extremeLargest && code === "high_holder_concentration") return 0;
+    if (extremeTop10 && code === "high_top10_concentration") return 1;
+    return 10;
+  };
+
+  return [...signals].sort((a, b) => {
+    const da = priority(a.code);
+    const db = priority(b.code);
+    if (da !== db) return da - db;
+    return 0;
+  });
 }

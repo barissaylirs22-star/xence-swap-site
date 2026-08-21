@@ -285,13 +285,18 @@
 }
 
 .riskConfidence {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.riskConfidenceRow {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
 }
 
 .riskConfidenceLabel {
@@ -309,6 +314,13 @@
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.04em;
+}
+
+.riskConfidenceNote {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-tertiary);
 }
 
 .signalBlock {

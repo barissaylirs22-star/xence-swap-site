@@ -94,7 +94,7 @@ try {
     throw new Error("empty events must yield no signals");
   }
 
-  // 2) Notable accumulation
+  // 2) Notable accumulation — neutral small-tier display label
   const accum = deriveWalletSignals(facts([event()]));
   if (!accum.some((s) => s.code === "notable_accumulation")) {
     throw new Error(`expected notable_accumulation got ${JSON.stringify(accum)}`);
@@ -102,11 +102,14 @@ try {
   if (accum[0].direction !== "accumulating") {
     throw new Error("expected accumulating direction");
   }
+  if (accum[0].label !== "Holder accumulation") {
+    throw new Error(`expected neutral Holder accumulation label got ${accum[0].label}`);
+  }
   if (!accum[0].reason.toLowerCase().includes("accumulation")) {
     throw new Error("reason must describe accumulation");
   }
 
-  // 3) Notable distribution
+  // 3) Notable distribution — neutral label
   const distrib = deriveWalletSignals(
     facts([
       event({
@@ -124,6 +127,9 @@ try {
   );
   if (!distrib.some((s) => s.code === "notable_distribution")) {
     throw new Error("expected notable_distribution");
+  }
+  if (distrib[0].label !== "Holder distribution") {
+    throw new Error(`expected Holder distribution got ${distrib[0].label}`);
   }
 
   // 4) Repeat activity
@@ -147,7 +153,7 @@ try {
     throw new Error("expected repeatActivity flag");
   }
 
-  // 5) Strong accumulation
+  // 5) Strong accumulation — stronger tier may use Major holder / Strong accumulation
   const strong = deriveWalletSignals(
     facts([
       event({
@@ -163,6 +169,12 @@ try {
   );
   if (!strong.some((s) => s.code === "strong_accumulation")) {
     throw new Error(`expected strong_accumulation got ${JSON.stringify(strong)}`);
+  }
+  if (
+    strong[0].label !== "Major holder" &&
+    strong[0].label !== "Strong accumulation"
+  ) {
+    throw new Error(`unexpected strong label ${strong[0].label}`);
   }
 
   // 6) No false smart-money claim in labels/reasons

@@ -35,7 +35,9 @@ const COPY = {
   risk: "Risk Analysis",
   why: "Why",
   positive: "Positive",
-  dataConfidence: "Data confidence",
+  dataConfidence: "Data completeness",
+  dataConfidenceNote:
+    "How much supporting data is available — not how certain the risk classification is.",
   trade: "Trade Token",
   close: "Close",
   loading: "Loading intelligence…",
@@ -426,23 +428,28 @@ export function TokenDetailModal({
             {explanation ? (
               <div
                 className={styles.riskConfidence}
-                aria-label={`${COPY.dataConfidence}: ${explanation.dataConfidence}`}
+                aria-label={`${COPY.dataConfidence}: ${explanation.dataConfidence}. ${COPY.dataConfidenceNote}`}
               >
-                <span className={styles.riskConfidenceLabel}>
-                  {COPY.dataConfidence}
-                </span>
-                <span
-                  className={[
-                    styles.riskConfidenceValue,
-                    explanation.dataConfidence === "HIGH"
-                      ? styles.confHigh
-                      : explanation.dataConfidence === "MEDIUM"
-                        ? styles.confMedium
-                        : styles.confLow,
-                  ].join(" ")}
-                >
-                  {explanation.dataConfidence}
-                </span>
+                <div className={styles.riskConfidenceRow}>
+                  <span className={styles.riskConfidenceLabel}>
+                    {COPY.dataConfidence}
+                  </span>
+                  <span
+                    className={[
+                      styles.riskConfidenceValue,
+                      explanation.dataConfidence === "HIGH"
+                        ? styles.confHigh
+                        : explanation.dataConfidence === "MEDIUM"
+                          ? styles.confMedium
+                          : styles.confLow,
+                    ].join(" ")}
+                  >
+                    {explanation.dataConfidence}
+                  </span>
+                </div>
+                <p className={styles.riskConfidenceNote}>
+                  {COPY.dataConfidenceNote}
+                </p>
               </div>
             ) : null}
 

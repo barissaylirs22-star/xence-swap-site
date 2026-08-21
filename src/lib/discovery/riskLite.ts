@@ -5,6 +5,7 @@ import {
   RISK_TOP_HOLDER_MEDIUM_PCT,
   RISK_VERY_LOW_LIQUIDITY_USD,
   RISK_VERY_NEW_MS,
+  assessVolumeLiquidityMismatch,
 } from "@/lib/intelligence/risk";
 import type { RiskLevel } from "@/lib/intelligence/types";
 import type { TokenAsset } from "@/lib/tokens/types";
@@ -38,6 +39,13 @@ export function assessDiscoveryRiskLite(input: {
     if (ageMs != null && ageMs < RISK_VERY_NEW_MS && liq < RISK_VERY_LOW_LIQUIDITY_USD / 2) {
       high = true;
     }
+  }
+
+  // Same conservative volume/liquidity imbalance as Risk V1 (MEDIUM floor).
+  const volLiqMismatch = assessVolumeLiquidityMismatch(liq, token.volume24hUsd);
+  if (volLiqMismatch) {
+    reasons.push("volume_liquidity_mismatch");
+    medium = true;
   }
 
   if (ageMs != null && ageMs < RISK_VERY_NEW_MS) {

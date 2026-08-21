@@ -5,7 +5,11 @@
  */
 
 import type { WhaleActivityEvent, WhaleEventKind } from "./types";
-import { classifyWhaleSignificance } from "./whaleThresholds";
+import {
+  classifyWhaleSignificance,
+  resolveTokenSizeTier,
+  type TokenSizeTier,
+} from "./whaleThresholds";
 
 /** Rolling aggregation window (max − min timestamp within a cluster). */
 export const WHALE_AGG_WINDOW_MS = 10 * 60 * 1000;
@@ -44,8 +48,19 @@ function formatAge(msAgo: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-function holderRole(isTopHolder: boolean, isTop10: boolean): string {
-  if (isTopHolder) return "Major holder";
+/**
+ * Display role only. Reserve "Major holder" for mid/large markets;
+ * micro/small use neutral "Large holder".
+ */
+function holderRole(
+  isTopHolder: boolean,
+  isTop10: boolean,
+  tier: TokenSizeTier,
+): string {
+  if (isTopHolder) {
+    if (tier === "micro" || tier === "small") return "Large holder";
+    return "Major holder";
+  }
   if (isTop10) return "Large holder";
   return "";
 }
@@ -149,8 +164,9 @@ function buildSwapSummary(
   netUsd: number,
   isTopHolder: boolean,
   isTop10: boolean,
+  tier: TokenSizeTier,
 ): string {
-  const role = holderRole(isTopHolder, isTop10);
+  const role = holderRole(isTopHolder, isTop10, tier);
   const swapCount = buyCount + sellCount;
   const absNet = Math.abs(netUsd);
   const usdPart =
@@ -183,6 +199,7 @@ function buildTransferSummary(
   supplyPct: number,
   isTopHolder: boolean,
   isTop10: boolean,
+  tier: TokenSizeTier,
 ): string {
   const n = members.length;
   const pct =
@@ -190,7 +207,7 @@ function buildTransferSummary(
       ? `${supplyPct.toFixed(supplyPct >= 1 ? 1 : 2)}% supply moved`
       : null;
   const walletPart = shortWallet(members[0]!.wallet);
-  const role = holderRole(isTopHolder, isTop10);
+  const role = holderRole(isTopHolder, isTop10, tier);
 
   if (n === 1) {
     const m = members[0]!;
@@ -289,6 +306,11 @@ export function aggregateCluster(
         return Math.max(max, m.usdValue);
       }, null);
 
+  const sizeTier = resolveTokenSizeTier(
+    context.liquidityUsd,
+    context.marketCapUsd,
+  );
+
   let kind: WhaleEventKind;
   let summary: string;
 
@@ -308,6 +330,7 @@ export function aggregateCluster(
       netUsd ?? 0,
       isTopHolder,
       isTop10Holder,
+      sizeTier,
     );
   } else {
     kind = pickDominantTransferKind(sorted);
@@ -316,6 +339,7 @@ export function aggregateCluster(
       supplyPct,
       isTopHolder,
       isTop10Holder,
+      sizeTier,
     );
   }
 

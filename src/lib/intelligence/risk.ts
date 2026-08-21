@@ -30,17 +30,34 @@ export const RISK_VERY_LOW_LIQUIDITY_USD = 1_000;
 /** Listed within this window → "very new token" reason. */
 export const RISK_VERY_NEW_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * 24h volume / liquidity ratio ≥ this with shallow liquidity → MEDIUM caution.
+ * Observable imbalance only — not a wash/manipulation claim.
+ */
+export const RISK_VOL_LIQ_RATIO_MEDIUM = 20;
+export const RISK_VOL_LIQ_LIQUIDITY_CAP_MEDIUM_USD = 25_000;
+
+/** Stronger Why wording when ratio is extreme and liquidity is thinner. */
+export const RISK_VOL_LIQ_RATIO_STRONG = 50;
+export const RISK_VOL_LIQ_LIQUIDITY_CAP_STRONG_USD = 10_000;
+
 /** Top holder share at/above this → high concentration (MEDIUM floor). */
 export const RISK_TOP_HOLDER_MEDIUM_PCT = 35;
 
 /** Top holder share at/above this → HIGH. */
 export const RISK_TOP_HOLDER_HIGH_PCT = 50;
 
+/** Largest-holder share at/above this → extreme Why priority (still HIGH via 50% rule). */
+export const RISK_TOP_HOLDER_EXTREME_PCT = 90;
+
 /** Top-10 share at/above this → MEDIUM floor. */
 export const RISK_TOP10_MEDIUM_PCT = 70;
 
 /** Top-10 share at/above this → HIGH. */
 export const RISK_TOP10_HIGH_PCT = 85;
+
+/** Top-10 share at/above this → extreme Why priority (still HIGH via 85% rule). */
+export const RISK_TOP10_EXTREME_PCT = 95;
 
 function formatWhaleUsd(n: number): string {
   if (n >= 1_000_000) return `~$${(n / 1_000_000).toFixed(2)}M`;
@@ -57,6 +74,57 @@ function formatDeclinePct(pct: number): string {
 function formatPp(pp: number): string {
   const rounded = Math.round(Math.abs(pp) * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function formatVolLiqUsd(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
+  return `$${Math.round(n)}`;
+}
+
+/**
+ * Observable 24h volume vs liquidity imbalance.
+ * MEDIUM floor only — never escalates to HIGH by itself.
+ * Missing / non-finite / zero liquidity → no signal.
+ */
+export function assessVolumeLiquidityMismatch(
+  liquidityUsd: number | null | undefined,
+  volume24hUsd: number | null | undefined,
+): { strong: boolean; message: string } | null {
+  if (
+    liquidityUsd == null ||
+    volume24hUsd == null ||
+    !Number.isFinite(liquidityUsd) ||
+    !Number.isFinite(volume24hUsd) ||
+    liquidityUsd <= 0
+  ) {
+    return null;
+  }
+  const ratio = volume24hUsd / liquidityUsd;
+  if (!Number.isFinite(ratio)) return null;
+
+  const liqLabel = formatVolLiqUsd(liquidityUsd);
+  const volLabel = formatVolLiqUsd(volume24hUsd);
+
+  if (
+    ratio >= RISK_VOL_LIQ_RATIO_STRONG &&
+    liquidityUsd < RISK_VOL_LIQ_LIQUIDITY_CAP_STRONG_USD
+  ) {
+    return {
+      strong: true,
+      message: `24h trading volume is extremely high relative to available liquidity (${volLabel} vol vs ${liqLabel} liquidity)`,
+    };
+  }
+  if (
+    ratio >= RISK_VOL_LIQ_RATIO_MEDIUM &&
+    liquidityUsd < RISK_VOL_LIQ_LIQUIDITY_CAP_MEDIUM_USD
+  ) {
+    return {
+      strong: false,
+      message: `24h trading volume is very high relative to available liquidity (${volLabel} vol vs ${liqLabel} liquidity)`,
+    };
+  }
+  return null;
 }
 
 /**
@@ -186,6 +254,19 @@ export function assessTokenRisk(input: {
     ) {
       high = true;
     }
+  }
+
+  // Volume / liquidity imbalance — MEDIUM floor only (never HIGH alone).
+  const volLiqMismatch = assessVolumeLiquidityMismatch(
+    market.liquidityUsd,
+    market.volume24hUsd,
+  );
+  if (volLiqMismatch) {
+    reasons.push({
+      code: "volume_liquidity_mismatch",
+      message: volLiqMismatch.message,
+    });
+    medium = true;
   }
 
   if (trading.veryNewTokenWarning || (market.ageMs != null && market.ageMs < RISK_VERY_NEW_MS)) {

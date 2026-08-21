@@ -7,6 +7,7 @@ export type RiskReasonCode =
   | "mint_authority_active"
   | "freeze_authority_active"
   | "very_low_liquidity"
+  | "volume_liquidity_mismatch"
   | "very_new_token"
   | "high_holder_concentration"
   | "high_top10_concentration"

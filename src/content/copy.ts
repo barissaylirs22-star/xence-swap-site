@@ -34,9 +34,9 @@ export const AXIOM_RADAR = {
   title: "AXIOM RADAR",
   sectionTitle: "Axiom Radar",
   sectionLine:
-    "Important changes across tokens Axiom is observing — not a ranking, not a prediction.",
+    "The few observable changes that deserve attention right now — not a ranking, not a prediction.",
   loading: "Scanning observed tokens for notable changes…",
-  empty: "No notable changes in enriched tokens right now",
+  empty: "No meaningful Radar changes detected right now.",
   unavailable: "Market data unavailable — Radar is idle",
   degraded:
     "Structural holder signals are still building — market-only changes may appear as enrichment arrives",

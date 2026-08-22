@@ -7,8 +7,8 @@ const CACHE_TTL_MS = 60_000;
 const METRICS_TTL_MS = 30_000;
 /** Soft cap per Dex profile endpoint before merge. */
 const MAX_SECTION = 40;
-/** Target size for AXIOM LIVE discovery universe. */
-export const DISCOVERY_TARGET = 60;
+/** Hard max size for AXIOM LIVE discovery universe (all Live filters). */
+export const DISCOVERY_TARGET = 40;
 const MINT_ENRICH_BATCH = 30;
 const FRESH_MS = 72 * 60 * 60 * 1000;
 
@@ -268,6 +268,7 @@ export function invalidateDexDiscoveryCaches(): void {
   invalidateCached("dex:latest-profiles");
   invalidateCached("dex:discovery-universe");
   invalidateCached(`dex:discovery-universe:${DISCOVERY_TARGET}`);
+  invalidateCached("dex:discovery-universe:60");
 }
 
 /**
@@ -366,23 +367,32 @@ async function seedsFromSearch(
 }
 
 /**
- * Broad Solana discovery universe for AXIOM LIVE (50+ real tokens).
+ * Broad Solana discovery universe for AXIOM LIVE (hard-capped).
  * Merges DexScreener boosts, latest profiles, and search pairs — no invented tokens.
  *
- * When `onPartial` is provided, each completed mint-enrich batch (30) emits the
- * accumulated universe so LIVE can paint before the final ~60-token set is ready.
- * Cache is written only for the final complete result (same Dex request count).
+ * Seed order preserves discovery priority (boosts → fresh profiles → search).
+ * Cap applies AFTER that merge and BEFORE mint-pair enrich so enrichment /
+ * Risk Lite / AXM / Early never process more than `limit` tokens.
+ *
+ * Upstream Dex list/search endpoints are unchanged (same request set); mint-pair
+ * enrich volume scales with the capped seed count.
+ *
+ * When `onPartial` is provided, each completed mint-enrich batch emits the
+ * accumulated universe so LIVE can paint before the final set is ready.
+ * Cache is written only for the final complete result.
  */
 export async function fetchDiscoveryUniverse(
   signal?: AbortSignal,
   limit = DISCOVERY_TARGET,
   onPartial?: (tokens: TokenAsset[]) => void,
 ): Promise<TokenAsset[] | null> {
-  const cacheKey = `dex:discovery-universe:${limit}`;
+  const hardLimit = Math.min(Math.max(1, limit), DISCOVERY_TARGET);
+  const cacheKey = `dex:discovery-universe:${hardLimit}`;
   const cached = getCached<TokenAsset[]>(cacheKey);
   if (cached) {
-    onPartial?.(cached);
-    return cached;
+    const bounded = cached.slice(0, hardLimit);
+    onPartial?.(bounded);
+    return bounded;
   }
 
   const [topBoosts, profiles, searchSol, searchPump, searchRay] =
@@ -423,19 +433,22 @@ export async function fetchDiscoveryUniverse(
 
   if (seeds.length === 0) return null;
 
-  const capped = seeds.slice(0, Math.max(limit, DISCOVERY_TARGET));
+  // Cap after discovery merge/priority order — before mint enrich.
+  const capped = seeds.slice(0, hardLimit);
   const tokens = await enrichWithPairs(capped, signal, (partial) => {
-    if (partial.length > 0) onPartial?.(partial);
+    if (partial.length > 0) onPartial?.(partial.slice(0, hardLimit));
   });
   // Aborted / incomplete enrich must not poison the universe cache.
   if (signal?.aborted) return null;
   if (tokens.length === 0) return null;
-  if (tokens.length < capped.length) {
-    return tokens;
+
+  const bounded = tokens.slice(0, hardLimit);
+  if (bounded.length < capped.length) {
+    return bounded;
   }
 
   // All-null metrics usually means the pairs enrich failed — never cache that.
-  const withMetrics = tokens.filter(
+  const withMetrics = bounded.filter(
     (t) =>
       (t.priceUsd != null && Number.isFinite(t.priceUsd)) ||
       (t.volume24hUsd != null && Number.isFinite(t.volume24hUsd)) ||
@@ -443,9 +456,9 @@ export async function fetchDiscoveryUniverse(
   ).length;
   if (withMetrics === 0) return null;
 
-  setCached(cacheKey, tokens, CACHE_TTL_MS);
-  setCached("dex:discovery-universe", tokens, CACHE_TTL_MS);
-  return tokens;
+  setCached(cacheKey, bounded, CACHE_TTL_MS);
+  setCached("dex:discovery-universe", bounded, CACHE_TTL_MS);
+  return bounded;
 }
 
 /**

@@ -49,7 +49,7 @@ function tabsFromUniverse(
  * Pump.fun remains a separate realtime stream.
  *
  * `onPartial` receives the same tab shape after each Dex mint-enrich batch so
- * the panel can show first usable rows before the final ~60-token universe.
+ * the panel can show first usable rows before the final capped universe.
  */
 export async function loadAxiomLiveTabs(
   signal?: AbortSignal,

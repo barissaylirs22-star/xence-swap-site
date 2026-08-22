@@ -9,6 +9,12 @@
  */
 
 import type { TokenAsset } from "@/lib/tokens/types";
+import type { RiskLevel } from "@/lib/intelligence/types";
+import {
+  RISK_TOP10_HIGH_PCT,
+  RISK_TOP_HOLDER_HIGH_PCT,
+  assessVolumeLiquidityMismatch,
+} from "@/lib/intelligence/risk";
 import {
   assessEarlySignal,
   EARLY_SPIKE_PCT,
@@ -60,6 +66,13 @@ export interface RadarEvent {
   /** Dedup key: mint + type + window/level. */
   dedupeKey: string;
   evidenceScore: number;
+  /**
+   * Optional secondary caution folded from the same mint.
+   * Null when no materially useful caution accompanies the primary reason.
+   */
+  secondaryCaution: string | null;
+  /** Context-only Risk Lite level when already known — never ranks alone. */
+  riskLevel: RiskLevel | null;
 }
 
 /** Prior Dex snapshot for session-local liquidity/volume comparisons only. */
@@ -95,7 +108,64 @@ export const RADAR_VOL_WITH_MOMENTUM_USD = 25_000;
 export const RADAR_MOMENTUM_5M_PCT = 8;
 export const RADAR_MOMENTUM_1H_PCT = 15;
 
-export const RADAR_MAX_EVENTS_DEFAULT = 20;
+/** Hard max Radar token cards — never pad to fill. */
+export const RADAR_MAX_EVENTS_DEFAULT = 3;
+
+/**
+ * Primary-reason priority (lower = stronger).
+ * Structural caution beats multi-signal beats structure beats market noise.
+ */
+export function radarPrimaryPriority(type: RadarEventType): number {
+  switch (type) {
+    case "CONCENTRATION_RISING":
+      return 1;
+    case "MULTI_SIGNAL":
+      return 2;
+    case "HOLDER_ACCELERATION":
+    case "EARLY_SIGNAL":
+      return 3;
+    case "DISTRIBUTION_IMPROVING":
+      return 4;
+    case "LIQUIDITY_MOVE":
+      return 5;
+    case "VOLUME_ACCELERATION":
+      return 6;
+    case "MOMENTUM_SHIFT":
+      return 7;
+    default:
+      return 99;
+  }
+}
+
+/** Risk HIGH or extreme concentration — positives suppressed; caution may survive. */
+export function isRadarPositiveSuppressed(
+  enrichment: DiscoveryEnrichment | undefined,
+): boolean {
+  if (!enrichment) return false;
+  if (enrichment.riskLevel === "HIGH") return true;
+  if (
+    finite(enrichment.topHolderPct) &&
+    enrichment.topHolderPct >= RISK_TOP_HOLDER_HIGH_PCT
+  ) {
+    return true;
+  }
+  if (
+    finite(enrichment.top10HolderPct) &&
+    enrichment.top10HolderPct >= RISK_TOP10_HIGH_PCT
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/** Extreme vol/liq mismatch — do not promote generic positive volume/momentum. */
+export function hasExtremeVolLiqMismatch(token: TokenAsset): boolean {
+  const mismatch = assessVolumeLiquidityMismatch(
+    token.liquidityUsd,
+    token.volume24hUsd,
+  );
+  return Boolean(mismatch?.strong);
+}
 
 function finite(n: number | null | undefined): n is number {
   return n != null && Number.isFinite(n);
@@ -131,12 +201,21 @@ function trendWindow(trend: LiveConcentrationTrendSummary): string {
 type Candidate = Omit<RadarEvent, "id"> & { type: RadarEventType };
 
 function candidate(
-  partial: Omit<Candidate, "id" | "dedupeKey"> & { dedupeKey?: string },
+  partial: Omit<Candidate, "id" | "dedupeKey" | "secondaryCaution" | "riskLevel"> & {
+    dedupeKey?: string;
+    secondaryCaution?: string | null;
+    riskLevel?: RiskLevel | null;
+  },
 ): Candidate {
   const dedupeKey =
     partial.dedupeKey ??
     `${partial.mint}:${partial.type}:${partial.window ?? "na"}`;
-  return { ...partial, dedupeKey };
+  return {
+    ...partial,
+    dedupeKey,
+    secondaryCaution: partial.secondaryCaution ?? null,
+    riskLevel: partial.riskLevel ?? null,
+  };
 }
 
 function earlyCandidates(
@@ -506,12 +585,15 @@ export function dedupeRadarEvents(events: RadarEvent[]): RadarEvent[] {
 
 /**
  * Sort: severity → freshness → evidence. Never by price gain alone.
+ * Token shortlist also applies primary-type priority (structural > market noise).
  */
 export function sortRadarEvents(
   events: RadarEvent[],
   now = Date.now(),
 ): RadarEvent[] {
   return [...events].sort((a, b) => {
+    const pr = radarPrimaryPriority(a.type) - radarPrimaryPriority(b.type);
+    if (pr !== 0) return pr;
     const sr = severityRank(b.severity) - severityRank(a.severity);
     if (sr !== 0) return sr;
     const ageA = Math.max(0, now - a.observedAt);
@@ -521,8 +603,131 @@ export function sortRadarEvents(
   });
 }
 
+function pickPrimary(parts: Candidate[]): Candidate {
+  return [...parts].sort((a, b) => {
+    const pr = radarPrimaryPriority(a.type) - radarPrimaryPriority(b.type);
+    if (pr !== 0) return pr;
+    const sr = severityRank(b.severity) - severityRank(a.severity);
+    if (sr !== 0) return sr;
+    return b.evidenceScore - a.evidenceScore;
+  })[0];
+}
+
+function cautionLabel(c: Candidate): string {
+  if (c.type === "CONCENTRATION_RISING") return "Concentration rising";
+  if (c.direction === "caution" && c.type === "LIQUIDITY_MOVE") {
+    return "Liquidity contracting";
+  }
+  if (c.direction === "caution" && c.type === "MOMENTUM_SHIFT") {
+    return "Short-window downside move";
+  }
+  if (c.direction === "caution") return c.title;
+  return c.title;
+}
+
 /**
- * Derive Radar events for the observed discovery universe.
+ * Fold mint events into one primary reason + optional secondary caution.
+ */
+export function foldMintCandidates(
+  token: TokenAsset,
+  parts: Candidate[],
+  enrichment: DiscoveryEnrichment | undefined,
+  now: number,
+): Candidate | null {
+  if (parts.length === 0) return null;
+
+  const suppressed = isRadarPositiveSuppressed(enrichment);
+  const extremeVolLiq = hasExtremeVolLiqMismatch(token);
+
+  let usable = parts.filter((p) => {
+    if (suppressed && p.direction === "positive") return false;
+    if (
+      extremeVolLiq &&
+      p.direction === "positive" &&
+      (p.type === "VOLUME_ACCELERATION" || p.type === "MOMENTUM_SHIFT")
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  if (usable.length === 0) return null;
+
+  // Multi-family → MULTI_SIGNAL primary when still meaningful after filters.
+  const families = new Set(
+    usable.map((c) => {
+      if (c.type === "EARLY_SIGNAL") return "early";
+      if (
+        c.type === "HOLDER_ACCELERATION" ||
+        c.type === "DISTRIBUTION_IMPROVING" ||
+        c.type === "CONCENTRATION_RISING"
+      ) {
+        return "structure";
+      }
+      return "market";
+    }),
+  );
+
+  let primary: Candidate;
+  let remainder: Candidate[];
+
+  // Prefer explicit structural caution as primary (priority 1 > MULTI_SIGNAL).
+  const structuralCaution = usable.find((p) => p.type === "CONCENTRATION_RISING");
+  if (structuralCaution) {
+    primary = structuralCaution;
+    remainder = usable.filter((p) => p.dedupeKey !== primary.dedupeKey);
+  } else if (families.size >= 2 && usable.length >= 2) {
+    primary = mergeMulti(token, usable, now);
+    remainder = usable;
+  } else {
+    primary = pickPrimary(usable);
+    remainder = usable.filter((p) => p.dedupeKey !== primary.dedupeKey);
+  }
+
+  // Pure market noise alone is allowed only as weak fallback (demoted in sort).
+  const cautionSource = remainder.find((p) => {
+    if (p.type === "CONCENTRATION_RISING") return true;
+    return p.direction === "caution";
+  });
+
+  let secondaryCaution: string | null = null;
+  if (
+    cautionSource &&
+    cautionSource.type !== primary.type &&
+    !(
+      primary.type === "MULTI_SIGNAL" &&
+      primary.dedupeKey.includes(cautionSource.type)
+    )
+  ) {
+    const earlyDupesConcentration =
+      primary.type === "CONCENTRATION_RISING" &&
+      cautionSource.type === "EARLY_SIGNAL" &&
+      /concentration/i.test(`${cautionSource.title} ${cautionSource.reason}`);
+    if (!earlyDupesConcentration) {
+      secondaryCaution = cautionLabel(cautionSource);
+    }
+  } else if (suppressed && enrichment?.riskLevel === "HIGH") {
+    if (primary.direction === "caution" || primary.type === "MULTI_SIGNAL") {
+      secondaryCaution = "HIGH structural risk";
+    }
+  } else if (
+    extremeVolLiq &&
+    primary.direction === "positive" &&
+    primary.type !== "VOLUME_ACCELERATION"
+  ) {
+    secondaryCaution = "Volume/liquidity imbalance";
+  }
+
+  return {
+    ...primary,
+    secondaryCaution,
+    riskLevel: enrichment?.riskLevel ?? null,
+  };
+}
+
+/**
+ * Derive Radar shortlist for the observed discovery universe.
+ * Max 3 token cards; one card per mint; empty is valid; never pads.
  */
 export function deriveRadarEvents(
   tokens: TokenAsset[],
@@ -533,7 +738,7 @@ export function deriveRadarEvents(
   const maxEvents = options?.maxEvents ?? RADAR_MAX_EVENTS_DEFAULT;
   const priorByMint = options?.priorByMint ?? null;
 
-  const perMint = new Map<string, Candidate[]>();
+  const folded: Candidate[] = [];
 
   for (const token of tokens) {
     if (!token.mint || !token.selectable) continue;
@@ -549,37 +754,33 @@ export function deriveRadarEvents(
 
     if (cands.length === 0) continue;
 
-    // Combine when multiple independent signal families fire together.
-    const families = new Set(
-      cands.map((c) => {
-        if (c.type === "EARLY_SIGNAL") return "early";
-        if (
-          c.type === "HOLDER_ACCELERATION" ||
-          c.type === "DISTRIBUTION_IMPROVING" ||
-          c.type === "CONCENTRATION_RISING"
-        ) {
-          return "structure";
-        }
-        return "market";
-      }),
-    );
-
-    if (families.size >= 2 && cands.length >= 2) {
-      perMint.set(token.mint, [mergeMulti(token, cands, now)]);
-    } else {
-      perMint.set(token.mint, cands);
-    }
+    const card = foldMintCandidates(token, cands, e, now);
+    if (card) folded.push(card);
   }
 
-  const flat: RadarEvent[] = [];
-  for (const list of perMint.values()) {
-    for (const c of list) {
-      flat.push({
-        ...c,
-        id: c.dedupeKey,
-      });
+  // Token-centric: one card per mint (fold already enforces; defend).
+  const byMint = new Map<string, Candidate>();
+  for (const c of folded) {
+    const prev = byMint.get(c.mint);
+    if (!prev) {
+      byMint.set(c.mint, c);
+      continue;
     }
+    const better =
+      radarPrimaryPriority(c.type) < radarPrimaryPriority(prev.type) ||
+      (radarPrimaryPriority(c.type) === radarPrimaryPriority(prev.type) &&
+        (severityRank(c.severity) > severityRank(prev.severity) ||
+          (severityRank(c.severity) === severityRank(prev.severity) &&
+            c.evidenceScore > prev.evidenceScore)));
+    if (better) byMint.set(c.mint, c);
   }
+
+  const flat: RadarEvent[] = [...byMint.values()].map((c) => ({
+    ...c,
+    id: `${c.mint}:${c.type}`,
+    secondaryCaution: c.secondaryCaution ?? null,
+    riskLevel: c.riskLevel ?? null,
+  }));
 
   const deduped = dedupeRadarEvents(flat);
   return sortRadarEvents(deduped, now).slice(0, maxEvents);

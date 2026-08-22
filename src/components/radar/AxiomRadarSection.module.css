@@ -342,6 +342,62 @@
   color: rgba(186, 198, 230, 0.82);
 }
 
+.secondaryCaution {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(0.72rem, 0.85vw, 0.8rem);
+  line-height: 1.35;
+  color: #fcd34d;
+}
+
+.contextChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+
+.ctxChip {
+  font-family: var(--font-sans);
+  font-size: clamp(0.58rem, 0.7vw, 0.64rem);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 255, 0.22);
+  background: rgba(15, 23, 48, 0.75);
+  color: rgba(203, 213, 245, 0.88);
+}
+
+.ctxRiskLow {
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.ctxRiskMed {
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.ctxRiskHigh {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.ctxAxm {
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.ctxMuted {
+  color: rgba(148, 163, 200, 0.75);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

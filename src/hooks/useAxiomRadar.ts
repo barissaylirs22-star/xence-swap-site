@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useAxiomLive } from "@/hooks/useAxiomLive";
-import { useDiscoveryEnrichment } from "@/hooks/useDiscoveryEnrichment";
+import { useAxiomDiscovery } from "@/lib/discovery/AxiomDiscoveryContext";
 import { useClock } from "@/hooks/useClock";
 import {
   deriveRadarEvents,
@@ -8,6 +7,7 @@ import {
   type RadarEvent,
   type RadarPriorMetrics,
 } from "@/lib/discovery/radarEvents";
+import { resolveLiveAxiomScore } from "@/lib/discovery/resolvedAxiomScore";
 import type { TokenAsset } from "@/lib/tokens/types";
 
 export type RadarFeedStatus =
@@ -17,8 +17,14 @@ export type RadarFeedStatus =
   | "unavailable"
   | "degraded";
 
+export interface RadarDisplayEvent extends RadarEvent {
+  /** Context-only AXM when already resolvable — never ranks / never fetches. */
+  axmScore: number | null;
+  axmLabel: string | null;
+}
+
 export interface AxiomRadarState {
-  events: RadarEvent[];
+  events: RadarDisplayEvent[];
   status: RadarFeedStatus;
   /** Tokens in the shared discovery universe. */
   observedCount: number;
@@ -31,23 +37,18 @@ export interface AxiomRadarState {
 }
 
 /**
- * AXIOM RADAR feed over the shared discovery universe.
- * Reuses Live discovery + enrichment caches — no universe-wide whale RPC.
+ * AXIOM RADAR shortlist over the shared Live discovery universe.
+ * Reuses Live discovery + enrichment — zero Radar-specific RPC.
  */
 export function useAxiomRadar(): AxiomRadarState {
-  const { tabs, loading } = useAxiomLive();
+  const {
+    universe,
+    universeUnavailable,
+    enrichment,
+    loading,
+  } = useAxiomDiscovery();
   const now = useClock(true);
   const priorRef = useRef<Map<string, RadarPriorMetrics>>(new Map());
-
-  const universe = useMemo(() => {
-    const trending = tabs.find((t) => t.id === "trending");
-    return trending?.tokens ?? tabs[0]?.tokens ?? [];
-  }, [tabs]);
-
-  const universeUnavailable = useMemo(() => {
-    const trending = tabs.find((t) => t.id === "trending");
-    return Boolean(trending?.unavailable);
-  }, [tabs]);
 
   const tokensByMint = useMemo(() => {
     const map = new Map<string, TokenAsset>();
@@ -57,18 +58,27 @@ export function useAxiomRadar(): AxiomRadarState {
     return map;
   }, [universe]);
 
-  const enrichment = useDiscoveryEnrichment(
-    universe,
-    universe.length > 0 && !universeUnavailable,
-  );
-
   const events = useMemo(() => {
     if (universeUnavailable || universe.length === 0) return [];
-    return deriveRadarEvents(universe, enrichment, {
+    const derived = deriveRadarEvents(universe, enrichment, {
       priorByMint: priorRef.current,
       now,
     });
-  }, [universe, enrichment, now, universeUnavailable]);
+    return derived.map((ev): RadarDisplayEvent => {
+      const token = tokensByMint.get(ev.mint);
+      const e = enrichment.get(ev.mint);
+      const axm =
+        token != null
+          ? resolveLiveAxiomScore(token, e ?? null, now)
+          : null;
+      return {
+        ...ev,
+        riskLevel: ev.riskLevel ?? e?.riskLevel ?? null,
+        axmScore: axm?.score ?? null,
+        axmLabel: axm?.label ?? null,
+      };
+    });
+  }, [universe, enrichment, now, universeUnavailable, tokensByMint]);
 
   // Update session baselines AFTER this paint so liquidity moves can compare
   // against the previous refresh — never treated as durable history.

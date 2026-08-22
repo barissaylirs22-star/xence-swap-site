@@ -2,11 +2,10 @@ import { Component, useEffect, useMemo, useRef, useState, useSyncExternalStore, 
 import { AXIOM_LIVE } from "@/content/copy";
 import { SWAP_COPY } from "@/content/swap";
 import { TokenDetailModal } from "@/components/intelligence/TokenDetailModal";
-import { useAxiomLive } from "@/hooks/useAxiomLive";
 import { useClock } from "@/hooks/useClock";
 import { useDexMarketByMints } from "@/hooks/useDexMarketByMints";
-import { useDiscoveryEnrichment } from "@/hooks/useDiscoveryEnrichment";
 import { usePumpFunStream } from "@/hooks/usePumpFunStream";
+import { useAxiomDiscovery } from "@/lib/discovery/AxiomDiscoveryContext";
 import { BrandMark } from "@/components/visual/BrandMark";
 import type { DexMarketMetrics } from "@/lib/market/dexscreener";
 import {
@@ -143,7 +142,8 @@ export function AxiomLivePanel({
 }: {
   layout?: "embedded" | "primary";
 }) {
-  const { tabs, loading } = useAxiomLive();
+  const { universe, universeUnavailable, enrichment, loading } =
+    useAxiomDiscovery();
   const pump = usePumpFunStream();
   const { selectLiveReceiveToken } = useSwapIntent();
   const [tab, setTab] = useState<AxiomLiveTabId>("trending");
@@ -156,21 +156,6 @@ export function AxiomLivePanel({
     subscribeFullAxiomScoreCache,
     getFullAxiomScoreCacheVersion,
     () => 0,
-  );
-
-  const universe = useMemo(() => {
-    const trending = tabs.find((t) => t.id === "trending");
-    return trending?.tokens ?? tabs[0]?.tokens ?? [];
-  }, [tabs]);
-
-  const universeUnavailable = useMemo(() => {
-    const trending = tabs.find((t) => t.id === "trending");
-    return Boolean(trending?.unavailable);
-  }, [tabs]);
-
-  const enrichment = useDiscoveryEnrichment(
-    universe,
-    tab !== "pump" && universe.length > 0,
   );
 
   const filtered = useMemo(() => {

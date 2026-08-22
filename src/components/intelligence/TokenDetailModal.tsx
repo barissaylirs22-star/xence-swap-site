@@ -18,6 +18,7 @@ import { assessEarlySignal, type EarlySignalResult } from "@/lib/discovery/early
 import { normalizeLiveHolderGrowth } from "@/lib/discovery/liveHolderGrowth";
 import { normalizeLiveConcentrationTrend } from "@/lib/discovery/liveConcentrationTrend";
 import type { DiscoveryEnrichment } from "@/lib/discovery/filters";
+import { useAlertsOptional } from "@/lib/alerts/AlertsContext";
 import { formatLaunchAge } from "@/lib/pump/mapToken";
 import { isAxmToken } from "@/lib/tokens/axm";
 import { SOL_MINT } from "@/lib/tokens/catalog";
@@ -111,6 +112,7 @@ export function TokenDetailModal({
 }: TokenDetailModalProps) {
   const { data, loading, holdersLoading, whaleLoading, error } =
     useTokenIntelligence(open ? token : null);
+  const alerts = useAlertsOptional();
   const now = useClock(open);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const mintKey = token?.mint ?? null;
@@ -191,6 +193,31 @@ export function TokenDetailModal({
     });
   }, [token, data, holdersLoading, now]);
 
+  // Feed already-loaded Detail results into Alerts (no extra fetches).
+  const setDetailFeed = alerts?.setDetailFeed;
+  useEffect(() => {
+    if (!setDetailFeed) return;
+    if (!open || !token || !data) {
+      setDetailFeed(null);
+      return;
+    }
+    setDetailFeed({
+      mint: token.mint,
+      symbol: data.identity?.symbol ?? token.symbol,
+      name: data.identity?.name ?? token.name,
+      token: {
+        ...token,
+        listedAt: data.market?.listedAt ?? token.listedAt,
+        volume24hUsd: data.market?.volume24hUsd ?? token.volume24hUsd,
+        liquidityUsd: data.market?.liquidityUsd ?? token.liquidityUsd,
+      },
+      riskLevel: data.risk?.level ?? null,
+      early: earlySignals,
+      whaleActivity: data.whaleActivity ?? null,
+      whaleReady: !whaleLoading,
+    });
+  }, [setDetailFeed, open, token, data, earlySignals, whaleLoading]);
+
   if (!open || !token) return null;
 
   const identity = data?.identity;
@@ -242,6 +269,24 @@ export function TokenDetailModal({
               <div className={styles.mintRow}>
                 <span className={styles.mint}>{shortMint(mint)}</span>
                 <CopyButton mint={mint} label="Copy" />
+                {alerts ? (
+                  <button
+                    type="button"
+                    className={[
+                      styles.followBtn,
+                      alerts.isFollowing(mint) ? styles.followBtnOn : "",
+                    ].join(" ")}
+                    onClick={() => {
+                      if (alerts.isFollowing(mint)) {
+                        alerts.unfollow(mint);
+                      } else {
+                        alerts.follow({ mint, symbol, name });
+                      }
+                    }}
+                  >
+                    {alerts.isFollowing(mint) ? "Following" : "Follow"}
+                  </button>
+                ) : null}
               </div>
               <div className={styles.priceRow}>
                 <span className={styles.price}>{price}</span>

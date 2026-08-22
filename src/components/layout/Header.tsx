@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { NAV_LINKS } from "@/config/site";
+import { AlertsControl } from "@/components/alerts/AlertsControl";
 import buttonStyles from "@/components/ui/Button.module.css";
 import { BrandMark } from "@/components/visual/BrandMark";
 import { MobileNav } from "./MobileNav";
@@ -74,6 +75,7 @@ export function Header() {
           </nav>
 
           <div className={styles.actions}>
+            <AlertsControl />
             <a
               href="#launch"
               className={`${styles.ctaDesktop} ${buttonStyles.button} ${buttonStyles.primary}`}

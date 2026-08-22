@@ -11,6 +11,8 @@ import { VisionSlider } from "@/components/vision/VisionSlider";
 import { LaunchSection } from "@/components/launch/LaunchSection";
 import { TradingPreview } from "@/components/launch/TradingPreview";
 import { CommunitySection } from "@/components/community/CommunitySection";
+import { AlertsEvaluator } from "@/components/alerts/AlertsEvaluator";
+import { AlertsProvider } from "@/lib/alerts/AlertsContext";
 import { AxiomDiscoveryProvider } from "@/lib/discovery/AxiomDiscoveryContext";
 import { applyInitialScroll } from "@/lib/nav/initialScroll";
 import { SwapIntentProvider } from "@/lib/swap/SwapIntentProvider";
@@ -22,27 +24,30 @@ export default function App() {
 
   return (
     <SwapIntentProvider>
-      <div className="app-shell" id="top">
-        <a className="skip-link" href="#live">
-          Skip to Axiom Live
-        </a>
-        <AmbientBackground />
-        <Header />
-        <main style={{ position: "relative", zIndex: 1 }}>
-          <Hero />
-          <AxiomDiscoveryProvider>
-            <AxiomLiveSection />
-            <AxiomRadarSection />
-          </AxiomDiscoveryProvider>
-          <TradingPreview />
-          <JourneySection />
-          <VisionSlider />
-          <LaunchSection />
-          <CommunitySection />
-        </main>
-        <Footer />
-        <StickyLaunchCta />
-      </div>
+      <AlertsProvider>
+        <div className="app-shell" id="top">
+          <a className="skip-link" href="#live">
+            Skip to Axiom Live
+          </a>
+          <AmbientBackground />
+          <Header />
+          <main style={{ position: "relative", zIndex: 1 }}>
+            <Hero />
+            <AxiomDiscoveryProvider>
+              <AlertsEvaluator />
+              <AxiomLiveSection />
+              <AxiomRadarSection />
+            </AxiomDiscoveryProvider>
+            <TradingPreview />
+            <JourneySection />
+            <VisionSlider />
+            <LaunchSection />
+            <CommunitySection />
+          </main>
+          <Footer />
+          <StickyLaunchCta />
+        </div>
+      </AlertsProvider>
     </SwapIntentProvider>
   );
 }

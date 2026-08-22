@@ -18,7 +18,7 @@ export const AXIOM_LIVE = {
   empty: "No tokens right now",
   unavailable: "Market data unavailable",
   enrichingFilter: "Building this list from live holder signals…",
-  earlySignalsEmpty: "No early multi-signal setups right now",
+  earlySignalsEmpty: "No meaningful early signals right now",
   loadMore: "Load more",
   newBadge: "New",
   statusLive: "LIVE",

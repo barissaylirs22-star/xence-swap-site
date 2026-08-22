@@ -528,6 +528,12 @@
   border-color: rgba(52, 211, 153, 0.38);
 }
 
+.earlyCaution {
+  color: #fdba74;
+  background: rgba(234, 88, 12, 0.12);
+  border-color: rgba(251, 146, 60, 0.36);
+}
+
 .price {
   font-family: var(--font-mono);
   font-size: 0.82rem;

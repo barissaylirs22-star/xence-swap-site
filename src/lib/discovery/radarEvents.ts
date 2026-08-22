@@ -147,10 +147,19 @@ function earlyCandidates(
   const early = assessEarlySignal(token, enrichment, now);
   if (!hasEarlySignal(early)) return [];
 
+  const primary = early.livePrimary;
   const level = early.level;
   const severity: RadarSeverity =
-    level === "strong" ? "high" : level === "building" ? "watch" : "info";
-  const confirms = early.confirmations.map((c) => c.message).slice(0, 3);
+    primary?.tone === "caution"
+      ? "high"
+      : level === "strong"
+        ? "high"
+        : level === "building"
+          ? "watch"
+          : "info";
+  const reasonParts = early.signals
+    .slice(0, 3)
+    .map((s) => s.explanation);
 
   return [
     candidate({
@@ -158,20 +167,20 @@ function earlyCandidates(
       symbol: token.symbol,
       name: token.name,
       type: "EARLY_SIGNAL",
-      title: `Early signal · ${early.label ?? level.toUpperCase()}`,
-      reason: confirms.length
-        ? confirms.join(" · ")
-        : "Multi-confirmation activity setup",
-      direction: "positive",
+      title: `Early signal · ${primary?.label ?? early.label ?? level.toUpperCase()}`,
+      reason: reasonParts.length
+        ? reasonParts.join(" · ")
+        : "Observable early change cue",
+      direction: primary?.tone === "caution" ? "caution" : "positive",
       severity,
       window: "live",
       metrics: [
-        { label: "Level", value: early.label ?? level },
-        { label: "Confirms", value: String(early.confirmations.length) },
+        { label: "Signal", value: primary?.label ?? early.label ?? level },
+        { label: "Count", value: String(early.signals.length) },
       ],
       observedAt: now,
-      evidenceScore: early.confirmations.length * 10,
-      dedupeKey: `${token.mint}:EARLY_SIGNAL:${level}`,
+      evidenceScore: early.signals.length * 12,
+      dedupeKey: `${token.mint}:EARLY_SIGNAL:${primary?.id ?? level}`,
     }),
   ];
 }

@@ -14,6 +14,10 @@ import {
   type WhaleActivityFacts,
   type WalletSignal,
 } from "@/lib/intelligence";
+import { assessEarlySignal, type EarlySignalResult } from "@/lib/discovery/earlySignals";
+import { normalizeLiveHolderGrowth } from "@/lib/discovery/liveHolderGrowth";
+import { normalizeLiveConcentrationTrend } from "@/lib/discovery/liveConcentrationTrend";
+import type { DiscoveryEnrichment } from "@/lib/discovery/filters";
 import { formatLaunchAge } from "@/lib/pump/mapToken";
 import { isAxmToken } from "@/lib/tokens/axm";
 import { SOL_MINT } from "@/lib/tokens/catalog";
@@ -75,6 +79,12 @@ const COPY = {
   walletActivity: "Activity",
   reason: "Reason",
   buildingHistory: "Building history...",
+  earlySignals: "Early Signals",
+  earlySignalsNone: "No meaningful early signal",
+  earlySignalsBuilding: "Building history…",
+  earlySignalsInsufficient: "Insufficient data for early signals",
+  earlySignalsNote:
+    "Observable change cues from existing holder and market data — not a price prediction.",
   interpretation: "Notes",
   revoked: "Revoked",
   active: "Active",
@@ -132,6 +142,54 @@ export function TokenDetailModal({
       isNativeSol: token.isNativeSol === true || token.mint === SOL_MINT,
     });
   }, [data, token]);
+
+  const earlySignals = useMemo(() => {
+    if (!token || !data) return null;
+    const security = data.security;
+    const market = data.market;
+    const holdersReady =
+      security?.holdersStatus === "ready" ||
+      (security?.holderCount != null &&
+        security.holdersStatus !== "pending" &&
+        security.holdersStatus !== "idle");
+    const enrichment: DiscoveryEnrichment = {
+      holderCount: security?.holderCount ?? null,
+      topHolderPct: security?.topHolderPct ?? null,
+      top10HolderPct: security?.top10HolderPct ?? null,
+      riskLevel: data.risk?.level ?? null,
+      status: holdersLoading
+        ? "loading"
+        : holdersReady
+          ? "ready"
+          : security?.holdersStatus === "error" ||
+              security?.holdersStatus === "unavailable"
+            ? "unavailable"
+            : "idle",
+      holderGrowth: data.holderIntel
+        ? normalizeLiveHolderGrowth(data.holderIntel, now)
+        : null,
+      concentrationTrend: data.holderIntel
+        ? normalizeLiveConcentrationTrend(data.holderIntel)
+        : null,
+    };
+    const historyBuilding = Boolean(
+      data.holderIntel?.growth.building || data.holderIntel?.whale.building,
+    );
+    const detailToken: TokenAsset = {
+      ...token,
+      listedAt: market?.listedAt ?? token.listedAt,
+      volume24hUsd: market?.volume24hUsd ?? token.volume24hUsd,
+      liquidityUsd: market?.liquidityUsd ?? token.liquidityUsd,
+    };
+    return assessEarlySignal(detailToken, enrichment, {
+      now,
+      includeWhale: true,
+      whaleActivity: data.whaleActivity,
+      mintAuthorityActive: security?.mintAuthorityActive ?? null,
+      freezeAuthorityActive: security?.freezeAuthorityActive ?? null,
+      historyBuilding,
+    });
+  }, [token, data, holdersLoading, now]);
 
   if (!open || !token) return null;
 
@@ -360,6 +418,12 @@ export function TokenDetailModal({
             ) : null}
           </section>
 
+          <section className={styles.section} aria-label={COPY.earlySignals}>
+            <h3 className={styles.sectionTitle}>{COPY.earlySignals}</h3>
+            <EarlySignalsBody assessment={earlySignals} loading={loading && !data} />
+            <p className={styles.earlySignalsNote}>{COPY.earlySignalsNote}</p>
+          </section>
+
           <section className={styles.section} aria-label={COPY.whaleActivity}>
             <div className={styles.sectionHead}>
               <h3 className={styles.sectionTitle}>{COPY.whaleActivity}</h3>
@@ -495,6 +559,49 @@ function Stat({
         {value}
       </span>
     </div>
+  );
+}
+
+function EarlySignalsBody({
+  assessment,
+  loading,
+}: {
+  assessment: EarlySignalResult | null;
+  loading: boolean;
+}) {
+  if (loading && !assessment) {
+    return <p className={styles.riskSummaryMuted}>{COPY.loading}</p>;
+  }
+  if (!assessment || assessment.maturity === "INSUFFICIENT_DATA") {
+    return (
+      <p className={styles.riskSummaryMuted}>{COPY.earlySignalsInsufficient}</p>
+    );
+  }
+  if (assessment.maturity === "BUILDING_HISTORY") {
+    return (
+      <p className={styles.riskSummaryMuted}>{COPY.earlySignalsBuilding}</p>
+    );
+  }
+  if (assessment.maturity !== "ACTIVE" || !assessment.detailSignals.length) {
+    return <p className={styles.riskSummaryMuted}>{COPY.earlySignalsNone}</p>;
+  }
+  return (
+    <ul className={styles.earlySignalList}>
+      {assessment.detailSignals.map((signal) => (
+        <li
+          key={signal.id}
+          className={[
+            styles.earlySignalItem,
+            signal.tone === "caution"
+              ? styles.earlySignalCaution
+              : styles.earlySignalPositive,
+          ].join(" ")}
+        >
+          <span className={styles.earlySignalLabel}>{signal.label}</span>
+          <span className={styles.earlySignalExplain}>{signal.explanation}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

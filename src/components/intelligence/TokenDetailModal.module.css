@@ -386,6 +386,64 @@
   color: var(--text-tertiary);
 }
 
+.earlySignalsNote {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}
+
+.earlySignalList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.earlySignalItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 255, 0.12);
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.earlySignalPositive {
+  border-color: rgba(52, 211, 153, 0.22);
+}
+
+.earlySignalCaution {
+  border-color: rgba(251, 146, 60, 0.28);
+}
+
+.earlySignalLabel {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: #e2e8f0;
+}
+
+.earlySignalPositive .earlySignalLabel {
+  color: #a7f3d0;
+}
+
+.earlySignalCaution .earlySignalLabel {
+  color: #fdba74;
+}
+
+.earlySignalExplain {
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: rgba(186, 198, 230, 0.82);
+}
+
 .sectionHead {
   display: flex;
   align-items: center;

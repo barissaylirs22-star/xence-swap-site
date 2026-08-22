@@ -131,7 +131,8 @@ function axmBadgeClass(score: ResolvedLiveAxiomScore | null | undefined): string
   return styles.axmRisk;
 }
 
-function earlyBadgeClass(level: string): string {
+function earlyBadgeClass(tone: string, level?: string): string {
+  if (tone === "caution") return styles.earlyCaution;
   if (level === "strong") return styles.earlyStrong;
   if (level === "building") return styles.earlyBuilding;
   return styles.earlyEarly;
@@ -435,6 +436,8 @@ function LiveTokenRow({
   const riskLevel = enrichment?.riskLevel ?? null;
   const axmScore = resolveLiveAxiomScore(token, enrichment, now);
   const earlySignal = assessEarlySignal(token, enrichment, now);
+  const earlyPrimary = earlySignal.livePrimary;
+  const earlyCaution = earlySignal.liveCaution;
   const movement = deriveMovementReason(token, now);
   const concentration = deriveConcentrationCue(enrichment);
   const growthSummary =
@@ -465,18 +468,34 @@ function LiveTokenRow({
           {riskLevel ? (
             <span className={riskBadgeClass(riskLevel)}>{riskLevel}</span>
           ) : null}
-          {earlySignal.level !== "none" && earlySignal.label ? (
+          {earlyPrimary ? (
             <span
-              className={[styles.earlyBadge, earlyBadgeClass(earlySignal.level)].join(
-                " ",
-              )}
+              className={[
+                styles.earlyBadge,
+                earlyBadgeClass(earlyPrimary.tone, earlySignal.level),
+              ].join(" ")}
               title={[
-                `Early Signal · ${earlySignal.label}`,
-                "Multi-confirmation activity cue — not a price prediction",
-                ...earlySignal.confirmations.map((c) => `• ${c.message}`),
+                `Early Signal · ${earlyPrimary.label}`,
+                "Observable change cue — not a price prediction",
+                earlyPrimary.explanation,
+                ...(earlyCaution
+                  ? [`• ${earlyCaution.label}: ${earlyCaution.explanation}`]
+                  : []),
               ].join("\n")}
             >
-              {earlySignal.label}
+              {earlyPrimary.label}
+            </span>
+          ) : null}
+          {earlyCaution ? (
+            <span
+              className={[styles.earlyBadge, styles.earlyCaution].join(" ")}
+              title={[
+                `Early Signal · ${earlyCaution.label}`,
+                "Observable change cue — not a price prediction",
+                earlyCaution.explanation,
+              ].join("\n")}
+            >
+              {earlyCaution.label}
             </span>
           ) : null}
           {showUnverified ? (

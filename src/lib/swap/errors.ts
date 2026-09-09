@@ -14,17 +14,25 @@ export type SwapErrorCode =
   | "slippage_exceeded"
   | "simulation_failed"
   | "confirmation_timeout"
+  | "confirmation_unknown"
   | "unknown";
 
 export class SwapError extends Error {
   readonly code: SwapErrorCode;
   readonly publicMessage: string;
+  readonly signature: string | null;
 
-  constructor(code: SwapErrorCode, publicMessage: string, cause?: unknown) {
+  constructor(
+    code: SwapErrorCode,
+    publicMessage: string,
+    cause?: unknown,
+    signature?: string | null,
+  ) {
     super(publicMessage);
     this.name = "SwapError";
     this.code = code;
     this.publicMessage = publicMessage;
+    this.signature = signature ?? null;
     if (cause !== undefined) {
       (this as Error & { cause?: unknown }).cause = cause;
     }

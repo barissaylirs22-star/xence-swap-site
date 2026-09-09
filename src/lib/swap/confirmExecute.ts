@@ -5,28 +5,49 @@ import {
   logWalletProviderDiagnostics,
 } from "@/lib/wallet/diagnostics";
 import type { ConnectedWallet } from "@/lib/wallet/types";
+import { SOL_MINT, SOL_TOKEN } from "@/lib/tokens/catalog";
 import type { TokenAsset } from "@/lib/tokens/types";
 import { toRawAmount } from "./amounts";
 import { fetchTokenUiBalance } from "./balances";
 import { requireSwapRouter } from "./createRouter";
-import { executeSwap } from "./execute";
+import {
+  executeSwap,
+  resolvePendingSwapFlight,
+} from "./execute";
 import { SwapError } from "./errors";
 import { assertCanExecuteSwaps } from "./gate";
 import { isMaterialQuoteChange } from "./materialChange";
 import { assertMainnetRpc } from "./network";
-import { assertQuoteMatchesPair } from "./pairGuard";
+import {
+  assertQuoteMatchesPair,
+  assertQuotePairIntegrity,
+} from "./pairGuard";
 import { isQuoteFresh } from "./quoteFreshness";
-import { validatePayAmount } from "./spendable";
+import {
+  hasSolFeeReserve,
+  isNativeSolToken,
+  validatePayAmount,
+} from "./spendable";
+import { getPendingSwapFlight } from "./submitLock";
 import type { SwapExecutionResult, SwapQuote } from "./types";
 
 export type ConfirmExecuteOutcome =
   | { status: "success"; result: SwapExecutionResult; quote: SwapQuote }
   | { status: "needs_reconfirm"; quote: SwapQuote; message: string }
+  | { status: "pending"; signature: string | null; message: string }
   | { status: "error"; message: string };
+
+function pendingOutcome(
+  signature: string | null,
+  message: string = SWAP_COPY.confirmationUnknown,
+): ConfirmExecuteOutcome {
+  return { status: "pending", signature, message };
+}
 
 /**
  * Confirm Swap orchestration:
- * revalidate → fresh quote → material-change gate → build/sign/send/confirm.
+ * pair/amount integrity → RPC/balance checks → fresh quote →
+ * material-change gate → build/sign/send/confirm.
  * Does not auto-run; only called from the Confirm button.
  */
 export async function confirmAndExecuteSwap(options: {
@@ -59,14 +80,22 @@ export async function confirmAndExecuteSwap(options: {
       return { status: "error", message: SWAP_COPY.disconnected };
     }
 
-    try {
-      await assertMainnetRpc(options.signal);
-    } catch (error) {
-      logReadinessBlockReason(
-        "mainnet_rpc_check_failed",
-        error instanceof SwapError ? error.code : "unknown",
-      );
-      throw error;
+    const pending = getPendingSwapFlight();
+    if (pending) {
+      const resolved = await resolvePendingSwapFlight(options.signal);
+      if (resolved.status === "confirmed") {
+        return {
+          status: "success",
+          result: { signature: resolved.signature, confirmed: true },
+          quote: options.reviewedQuote,
+        };
+      }
+      if (resolved.status === "pending") {
+        return pendingOutcome(resolved.signature, resolved.message);
+      }
+      if (resolved.status === "failed" || resolved.status === "expired") {
+        return { status: "error", message: resolved.message };
+      }
     }
 
     if (
@@ -82,6 +111,28 @@ export async function confirmAndExecuteSwap(options: {
     );
     if (!amountRaw || amountRaw === "0") {
       return { status: "error", message: SWAP_COPY.invalidAmount };
+    }
+
+    // Reviewed quote must still match the displayed pair/amount.
+    // Do NOT require its TTL here — a fresh quote is fetched after RPC checks.
+    assertQuotePairIntegrity({
+      quote: options.reviewedQuote,
+      payToken: options.payToken,
+      receiveToken: options.receiveToken,
+      payAmountRaw: amountRaw,
+    });
+    if (options.reviewedQuote.slippageBps !== options.slippageBps) {
+      throw new SwapError("invalid_request", SWAP_COPY.pairMismatch);
+    }
+
+    try {
+      await assertMainnetRpc(options.signal);
+    } catch (error) {
+      logReadinessBlockReason(
+        "mainnet_rpc_check_failed",
+        error instanceof SwapError ? error.code : "unknown",
+      );
+      throw error;
     }
 
     // Live balance re-check (fail closed on RPC issues).
@@ -111,15 +162,20 @@ export async function confirmAndExecuteSwap(options: {
       return { status: "error", message: SWAP_COPY.invalidAmount };
     }
 
-    // Reviewed quote must still match the displayed pair/amount.
-    assertQuoteMatchesPair({
-      quote: options.reviewedQuote,
-      payToken: options.payToken,
-      receiveToken: options.receiveToken,
-      payAmountRaw: amountRaw,
-    });
-    if (options.reviewedQuote.slippageBps !== options.slippageBps) {
-      throw new SwapError("invalid_request", SWAP_COPY.pairMismatch);
+    if (!isNativeSolToken(options.payToken)) {
+      const solDecimals = SOL_TOKEN.decimals ?? 9;
+      const solBalance = await fetchTokenUiBalance({
+        owner: options.wallet.publicKey,
+        mint: SOL_MINT,
+        decimals: solDecimals,
+        signal: options.signal,
+      });
+      if (solBalance.status !== "ok" || solBalance.uiAmount === null) {
+        return { status: "error", message: SWAP_COPY.balanceUnavailable };
+      }
+      if (!hasSolFeeReserve(solBalance.uiAmount)) {
+        return { status: "error", message: SWAP_COPY.solReserve };
+      }
     }
 
     options.onPhase?.("quote");
@@ -170,6 +226,9 @@ export async function confirmAndExecuteSwap(options: {
     return { status: "success", result, quote: freshQuote };
   } catch (error) {
     if (error instanceof SwapError) {
+      if (error.code === "confirmation_unknown") {
+        return pendingOutcome(error.signature, error.publicMessage);
+      }
       return { status: "error", message: error.publicMessage };
     }
     return { status: "error", message: SWAP_COPY.failure };

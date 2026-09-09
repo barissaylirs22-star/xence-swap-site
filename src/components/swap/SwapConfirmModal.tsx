@@ -167,7 +167,15 @@ export function SwapConfirmModal({
           </div>
         ) : statusMessage ? (
           <div className={styles.status} role="status">
-            {statusMessage}
+            <div>{statusMessage}</div>
+            {pendingSignature ? (
+              <div className={styles.progressSig}>
+                {SWAP_COPY.signature}:{" "}
+                <span className={styles.mono}>
+                  {truncateAddress(pendingSignature, 6, 6)}
+                </span>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

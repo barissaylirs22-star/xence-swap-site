@@ -64,6 +64,8 @@ export const SWAP_COPY = {
   networkMainnet: "Solana Mainnet",
   pairMismatch: "Token pair changed. Request a fresh quote.",
   submitInFlight: "Transaction already in progress.",
+  confirmationUnknown:
+    "Transaction submitted. Confirmation is still pending — do not submit again.",
   valuesUpdated: "Quote updated — review the new amounts, then Confirm again.",
   viewTransaction: "View on Solscan",
   amountPaid: "Amount paid",

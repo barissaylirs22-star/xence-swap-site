@@ -93,3 +93,9 @@ export function validatePayAmount(options: {
 
   return { ok: true, amount: n };
 }
+
+/** True when native SOL covers the small fee/rent buffer. */
+export function hasSolFeeReserve(solBalanceUi: number | null): boolean {
+  if (solBalanceUi === null || !Number.isFinite(solBalanceUi)) return false;
+  return solBalanceUi >= SOL_FEE_RESERVE_SOL;
+}

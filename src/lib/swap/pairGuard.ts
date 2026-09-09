@@ -3,21 +3,17 @@ import { SwapError } from "./errors";
 import { isQuoteFresh } from "./quoteFreshness";
 import type { SwapQuote } from "./types";
 
-/** Fail closed if the live quote does not match the displayed pair/amount. */
-export function assertQuoteMatchesPair(options: {
+/**
+ * Pair/amount integrity only — does not inspect quote TTL.
+ * Used for the user-reviewed quote so slow RPC cannot fail Confirm as expired.
+ */
+export function assertQuotePairIntegrity(options: {
   quote: SwapQuote;
   payToken: TokenAsset;
   receiveToken: TokenAsset;
   payAmountRaw: string;
 }): void {
   const { quote, payToken, receiveToken, payAmountRaw } = options;
-
-  if (!isQuoteFresh(quote)) {
-    throw new SwapError(
-      "stale_quote",
-      "Quote expired. Request a fresh quote and try again.",
-    );
-  }
 
   if (
     quote.inputMint !== payToken.mint ||
@@ -35,6 +31,22 @@ export function assertQuoteMatchesPair(options: {
       "Amount changed. Request a fresh quote.",
     );
   }
+}
+
+/** Fail closed if the live quote does not match the displayed pair/amount. */
+export function assertQuoteMatchesPair(options: {
+  quote: SwapQuote;
+  payToken: TokenAsset;
+  receiveToken: TokenAsset;
+  payAmountRaw: string;
+}): void {
+  if (!isQuoteFresh(options.quote)) {
+    throw new SwapError(
+      "stale_quote",
+      "Quote expired. Request a fresh quote and try again.",
+    );
+  }
+  assertQuotePairIntegrity(options);
 }
 
 export function quoteMatchesDisplayedPair(

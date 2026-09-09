@@ -26,6 +26,7 @@ import {
 } from "@/lib/swap/spendable";
 import {
   acquireSwapSubmitLock,
+  hasUnresolvedSwapFlight,
   isSwapSubmitLocked,
   releaseSwapSubmitLock,
 } from "@/lib/swap/submitLock";
@@ -209,6 +210,8 @@ export function AxiomSwap() {
     Boolean(payToken.warnings?.includes("unknown_metadata")) ||
     Boolean(receiveToken.warnings?.includes("unknown_metadata"));
 
+  const unresolvedFlight = hasUnresolvedSwapFlight();
+
   const canReview =
     Boolean(wallet) &&
     amountCheck.ok &&
@@ -218,7 +221,8 @@ export function AxiomSwap() {
     readiness.quoteReady &&
     !quoting &&
     !confirming &&
-    !isSwapSubmitLocked();
+    !isSwapSubmitLocked() &&
+    !unresolvedFlight;
 
   // Close confirmation if the reviewed pair/amount becomes unsafe or the
   // modal's own quote expires. Do NOT key off the background useSwapQuote
@@ -235,6 +239,9 @@ export function AxiomSwap() {
       confirmDetails.payToken.mint !== payToken.mint ||
       confirmDetails.receiveToken.mint !== receiveToken.mint ||
       confirmDetails.payAmount !== payAmount;
+
+    // Keep the modal up while a broadcast outcome is unknown.
+    if (hasUnresolvedSwapFlight()) return;
 
     if (pairDrifted || !isQuoteFresh(confirmDetails.quote)) {
       setConfirmOpen(false);
@@ -322,6 +329,11 @@ export function AxiomSwap() {
       void onConnect();
       return;
     }
+    if (hasUnresolvedSwapFlight()) {
+      setConfirmOpen(true);
+      setConfirmStatus(SWAP_COPY.confirmationUnknown);
+      return;
+    }
     openConfirm();
   };
 
@@ -348,9 +360,12 @@ export function AxiomSwap() {
       return;
     }
 
+    const resolvingFlight = hasUnresolvedSwapFlight();
     setConfirming(true);
-    setConfirmStatus(SWAP_COPY.preparing);
-    setPendingSignature(null);
+    setConfirmStatus(
+      resolvingFlight ? SWAP_COPY.confirmingOnchain : SWAP_COPY.preparing,
+    );
+    if (!resolvingFlight) setPendingSignature(null);
     setSuccess(null);
 
     void (async () => {
@@ -387,6 +402,13 @@ export function AxiomSwap() {
           });
           setConfirmStatus(outcome.message);
           setPendingSignature(null);
+          return;
+        }
+
+        if (outcome.status === "pending") {
+          if (outcome.signature) setPendingSignature(outcome.signature);
+          setConfirmStatus(outcome.message);
+          setConfirmOpen(true);
           return;
         }
 
@@ -476,7 +498,9 @@ export function AxiomSwap() {
     : SWAP_COPY.swap;
 
   const primaryDisabled =
-    connecting || (!!wallet && (!canReview || confirming));
+    connecting ||
+    (!!wallet && !unresolvedFlight && (!canReview || confirming)) ||
+    (unresolvedFlight && confirming);
 
   return (
     <div className={styles.root}>
@@ -741,6 +765,10 @@ export function AxiomSwap() {
         onCancel={() => {
           if (confirming) return;
           setConfirmOpen(false);
+          if (hasUnresolvedSwapFlight()) {
+            setConfirmStatus(SWAP_COPY.confirmationUnknown);
+            return;
+          }
           setConfirmStatus(null);
           setPendingSignature(null);
         }}

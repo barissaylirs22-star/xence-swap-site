@@ -12,8 +12,8 @@ import { LaunchSection } from "@/components/launch/LaunchSection";
 import { TradingPreview } from "@/components/launch/TradingPreview";
 import { CommunitySection } from "@/components/community/CommunitySection";
 import { AlertsEvaluator } from "@/components/alerts/AlertsEvaluator";
-import { AlertsProvider } from "@/lib/alerts/AlertsContext";
-import { AxiomDiscoveryProvider } from "@/lib/discovery/AxiomDiscoveryContext";
+import { AlertsProvider } from "@/lib/alerts/AlertsProvider";
+import { AxiomDiscoveryProvider } from "@/lib/discovery/AxiomDiscoveryProvider";
 import { applyInitialScroll } from "@/lib/nav/initialScroll";
 import { SwapIntentProvider } from "@/lib/swap/SwapIntentProvider";
 

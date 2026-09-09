@@ -639,7 +639,7 @@ export function foldMintCandidates(
   const suppressed = isRadarPositiveSuppressed(enrichment);
   const extremeVolLiq = hasExtremeVolLiqMismatch(token);
 
-  let usable = parts.filter((p) => {
+  const usable = parts.filter((p) => {
     if (suppressed && p.direction === "positive") return false;
     if (
       extremeVolLiq &&

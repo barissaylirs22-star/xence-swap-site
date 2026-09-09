@@ -164,7 +164,7 @@ function transitionBinary(opts: {
   reason: string;
   events: AlertEvent[];
 }): AlertArmMap {
-  let arms = opts.arms;
+  const arms = opts.arms;
   const arm = getArm(arms, opts.mint, opts.type);
 
   if (!arm.baselined) {
@@ -212,7 +212,7 @@ function transitionRisk(opts: {
   name?: string;
   events: AlertEvent[];
 }): AlertArmMap {
-  let arms = opts.arms;
+  const arms = opts.arms;
   const type: AlertType = "RISK_BECAME_HIGH";
   const arm = getArm(arms, opts.mint, type);
 

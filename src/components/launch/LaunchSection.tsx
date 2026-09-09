@@ -5,7 +5,6 @@ import {
   LAUNCH,
 } from "@/config/launch";
 import { LAUNCH_SECTION } from "@/content/copy";
-import { useReveal } from "@/hooks/useReveal";
 import { useCopyMint } from "@/hooks/useCopyMint";
 import buttonStyles from "@/components/ui/Button.module.css";
 import { BrandMark } from "@/components/visual/BrandMark";
@@ -67,19 +66,17 @@ function LiveActions() {
 }
 
 export function LaunchSection() {
-  const { ref, visible } = useReveal<HTMLElement>();
   const live = isLaunchLive();
 
   return (
     <section
       id="launch"
-      ref={ref}
-      className={`full-bleed section sectionCompact reveal ${visible ? "revealVisible" : ""}`}
+      className={`full-bleed section ${styles.shell}`}
       aria-labelledby="launch-title"
     >
       <div className="page">
         <div className={styles.module}>
-          <BrandMark size={48} className={styles.mark} />
+          <BrandMark size={28} className={styles.mark} />
 
           <div className={styles.copy}>
             {!live ? (

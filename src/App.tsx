@@ -39,9 +39,9 @@ export default function App() {
               <AxiomRadarSection />
             </AxiomDiscoveryProvider>
             <TradingPreview />
+            <LaunchSection />
             <JourneySection />
             <VisionSlider />
-            <LaunchSection />
             <CommunitySection />
           </main>
           <Footer />

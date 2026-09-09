@@ -33,6 +33,9 @@ export function Footer() {
             <a className={styles.link} href="#trade">
               Trade
             </a>
+            <a className={styles.link} href="#portfolio">
+              Portfolio
+            </a>
             <a className={styles.link} href="#community">
               Community
             </a>

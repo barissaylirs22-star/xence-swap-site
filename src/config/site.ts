@@ -17,6 +17,7 @@ export const NAV_LINKS = [
   { href: "#live", label: "Live" },
   { href: "#radar", label: "Radar" },
   { href: "#trade", label: "Trade" },
+  { href: "#portfolio", label: "Portfolio" },
   { href: "#journey", label: "Journey" },
   { href: "#vision", label: "Signal" },
   { href: "#launch", label: "Launch" },

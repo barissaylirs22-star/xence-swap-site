@@ -88,6 +88,23 @@ export const TRADING_PREVIEW = {
   line: "Swap supported Solana tokens. AXM joins after Pump.fun launch.",
 } as const;
 
+export const PORTFOLIO = {
+  label: "Portfolio",
+  title: "Wallet",
+  line: "Holdings for the connected wallet.",
+  connect: "Connect Wallet",
+  disconnected: "Connect a wallet to view balances.",
+  loading: "Loading balances…",
+  empty: "No SPL tokens in this wallet.",
+  unavailable: "Wallet balances unavailable.",
+  token2022Unavailable: "Token-2022 holdings unavailable.",
+  refresh: "Refresh",
+  sol: "SOL",
+  tokens: "Tokens",
+  amount: "Amount",
+  wallet: "Wallet",
+} as const;
+
 export const COMMUNITY = {
   label: "Community",
   title: "Stay close",

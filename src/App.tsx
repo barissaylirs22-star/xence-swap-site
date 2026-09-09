@@ -11,6 +11,7 @@ import { VisionSlider } from "@/components/vision/VisionSlider";
 import { LaunchSection } from "@/components/launch/LaunchSection";
 import { TradingPreview } from "@/components/launch/TradingPreview";
 import { CommunitySection } from "@/components/community/CommunitySection";
+import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
 import { AlertsEvaluator } from "@/components/alerts/AlertsEvaluator";
 import { AlertsProvider } from "@/lib/alerts/AlertsProvider";
 import { AxiomDiscoveryProvider } from "@/lib/discovery/AxiomDiscoveryProvider";
@@ -37,8 +38,9 @@ export default function App() {
               <AlertsEvaluator />
               <AxiomLiveSection />
               <AxiomRadarSection />
+              <TradingPreview />
+              <PortfolioSection />
             </AxiomDiscoveryProvider>
-            <TradingPreview />
             <LaunchSection />
             <JourneySection />
             <VisionSlider />

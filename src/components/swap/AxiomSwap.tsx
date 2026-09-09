@@ -576,7 +576,12 @@ export function AxiomSwap() {
           <div className={styles.fieldMain}>
             <input
               className={styles.amount}
+              type="text"
               inputMode="decimal"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              lang="en"
               placeholder="0.0"
               value={payAmount}
               onChange={(e) => {

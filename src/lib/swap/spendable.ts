@@ -16,9 +16,23 @@ export type PayAmountIssue =
   | "sol_reserve"
   | "balance_unknown";
 
-/** Sanitize decimal amount typing (digits + single dot). */
+/**
+ * True while the user is mid-decimal (e.g. "0." / ".").
+ * Keep the raw string; do not Number()/parseFloat it yet.
+ */
+export function isIncompleteAmountDraft(uiAmount: string): boolean {
+  return /^\d*\.$/.test(uiAmount.trim());
+}
+
+/**
+ * Sanitize decimal amount typing.
+ * Preserves drafts "", "0", "0.", "0.0", "0.01".
+ * Normalizes "," to "." so mobile/locale pads cannot collapse "0,01" → "001".
+ * Extra '.' after the first separator are dropped (0.0.1 → 0.01).
+ */
 export function sanitizeAmountInput(raw: string): string {
-  const cleaned = raw.replace(/[^0-9.]/g, "");
+  const normalized = raw.replace(/,/g, ".");
+  const cleaned = normalized.replace(/[^0-9.]/g, "");
   const firstDot = cleaned.indexOf(".");
   if (firstDot === -1) return cleaned;
   return (
@@ -56,6 +70,8 @@ export function validatePayAmount(options: {
 }): { ok: true; amount: number } | { ok: false; issue: PayAmountIssue } {
   const trimmed = options.amount.trim();
   if (!trimmed) return { ok: false, issue: "empty" };
+  // "0." is a typing draft, not a numeric amount yet.
+  if (isIncompleteAmountDraft(trimmed)) return { ok: false, issue: "empty" };
   if (!isValidAmountShape(trimmed)) return { ok: false, issue: "invalid" };
 
   const n = Number(trimmed);

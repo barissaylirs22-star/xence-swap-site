@@ -28,8 +28,7 @@ When `isLive === true` and `mint` is set:
 
 The general Axiom Swap terminal (SOL ↔ USDC and other supported tokens) is configured in [`src/config/swap.ts`](src/config/swap.ts) and does **not** require AXM to be live. Quotes and execution are enabled for controlled mainnet use (wallet Confirm + approval still required).
 
-Do **not** invent a mint address. Do **not** reuse any abandoned legacy mint.
-The previous AXM token implementation is abandoned; only the new Pump.fun mint belongs here.
+No AXM mint is active or configured. Do **not** invent a mint address. Do **not** reuse a mint from legacy work. Set the mint only through the verified launch flow in [`src/config/launch.ts`](src/config/launch.ts).
 
 Swap routing uses an Axiom UI over a provider-abstracted service layer (Jupiter HTTP APIs behind the scenes). No embedded third-party swap iframe.
 
